@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Key Viewer</title>
+<style>
+  :root {
+    --bg: #f4f4f2; --fg: #1b1b1b; --muted: #6b6b6b;
+    --key: #ffffff; --key-border: #c9c9c4; --on: #1f9d55; --on-fg: #ffffff;
+    --warn-bg: #fff2cc; --warn-fg: #7a5600;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151515; --fg: #ececec; --muted: #9a9a9a;
+      --key: #242424; --key-border: #3a3a3a; --on: #2fbf6b; --on-fg: #0b0b0b;
+      --warn-bg: #3a2f10; --warn-fg: #ffd466;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px; background: var(--bg); color: var(--fg);
+    font: 16px/1.4 system-ui, sans-serif; text-align: center;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p { color: var(--muted); margin: 0 0 20px; }
+  #focus {
+    display: none; background: var(--warn-bg); color: var(--warn-fg);
+    padding: 10px; border-radius: 8px; margin: 0 auto 20px; max-width: 420px;
+  }
+  body.blurred #focus { display: block; }
+  .pad {
+    display: grid; gap: 8px; justify-content: center;
+    grid-template-columns: repeat(3, 72px) 24px 72px; grid-template-rows: 72px 72px;
+  }
+  .k {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--key); border: 2px solid var(--key-border); border-radius: 10px;
+    font-size: 30px; font-weight: 700; transition: background 60ms;
+  }
+  .k.on { background: var(--on); border-color: var(--on); color: var(--on-fg); }
+  #up { grid-column: 2; grid-row: 1; }
+  #left { grid-column: 1; grid-row: 2; }
+  #down { grid-column: 2; grid-row: 2; }
+  #right { grid-column: 3; grid-row: 2; }
+  #z { grid-column: 5; grid-row: 2; }
+  #held { margin: 20px 0 8px; font-weight: 600; min-height: 1.4em; }
+  #log {
+    margin: 0 auto; max-width: 420px; height: 220px; overflow: auto; text-align: left;
+    font: 13px/1.5 ui-monospace, monospace; color: var(--muted);
+    border: 1px solid var(--key-border); border-radius: 8px; padding: 8px 12px;
+  }
+</style>
+</head>
+<body>
+  <h1>Key viewer</h1>
+  <p>Start <code>listener.py</code> (without --test), click this page, and watch the keys light up.</p>
+  <div id="focus">This page is not focused - click here, or keys will go elsewhere.</div>
+  <div class="pad">
+    <div class="k" id="up">&uarr;</div>
+    <div class="k" id="left">&larr;</div>
+    <div class="k" id="down">&darr;</div>
+    <div class="k" id="right">&rarr;</div>
+    <div class="k" id="z">Z</div>
+  </div>
+  <div id="held">Held: none</div>
+  <div id="log"></div>
+<script>
+  const names = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", z: "z", Z: "z" };
+  const held = new Set();
+  const logBox = document.getElementById("log");
+
+  function show(key, down, repeat) {
+    if (repeat) return;              // OS auto-repeat: the key is simply still held
+    down ? held.add(key) : held.delete(key);
+    document.getElementById(key).classList.toggle("on", down);
+    document.getElementById("held").textContent = "Held: " + ([...held].join(" + ") || "none");
+    const line = document.createElement("div");
+    line.textContent = new Date().toLocaleTimeString() + "  " + key.padEnd(5) + (down ? " DOWN" : " up");
+    logBox.prepend(line);
+  }
+
+  addEventListener("keydown", e => {
+    const k = names[e.key];
+    if (k) { e.preventDefault(); show(k, true, e.repeat); }
+  });
+  addEventListener("keyup", e => {
+    const k = names[e.key];
+    if (k) { e.preventDefault(); show(k, false, false); }
+  });
+  addEventListener("blur", () => document.body.classList.add("blurred"));
+  addEventListener("focus", () => document.body.classList.remove("blurred"));
+  if (!document.hasFocus()) document.body.classList.add("blurred");
+</script>
+</body>
+</html>

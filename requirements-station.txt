@@ -1,0 +1,5 @@
+websockets>=14.0
+certifi
+numpy
+opencv-python>=4.8
+mediapipe>=0.10.14

@@ -1,0 +1,4 @@
+websockets>=14.0
+certifi
+pydirectinput>=1.0.4 ; sys_platform == "win32"
+pynput>=1.7.6 ; sys_platform != "win32"

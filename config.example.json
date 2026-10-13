@@ -1,0 +1,23 @@
+{
+  "server": "wss://YOUR-APP.onrender.com",
+  "token": "ASK-THE-ORGANIZERS",
+  "team": "07",
+
+  "station": {
+    "name": "station1",
+    "camera": 0,
+    "yaw_enter": 12.0,
+    "yaw_exit": 7.0,
+    "pitch_enter": 8.0,
+    "pitch_exit": 5.0,
+    "mouth_enter": 0.25,
+    "mouth_exit": 0.15,
+    "smoothing": 0.5,
+    "sensitivity": 1.0,
+    "invert_yaw": false,
+    "invert_pitch": false,
+    "mirror": true,
+    "demo_minutes": 10,
+    "model_path": "face_landmarker.task"
+  }
+}
