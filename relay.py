@@ -152,7 +152,10 @@ async def run_listener(ws, team):
     listeners[team] = ws
     if old is not None:
         log.info("listener %s: replacing previous connection", team)
-        # Close in the background so a dead old socket can't delay the new one.
+        # Tell it why first (proxies like Render's can delay close frames),
+        # then close in the background so a dead socket can't delay the new one.
+        await send(old, {"type": "error", "code": "replaced",
+                         "message": "Another laptop connected with this team ID"})
         asyncio.create_task(old.close(CLOSE_REPLACED, "replaced by a newer connection"))
     log.info("listener %s: connected from %s", team, ws.remote_address)
 

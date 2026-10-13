@@ -32,6 +32,10 @@ CLOSE_REPLACED = 4003
 SYSTEM = platform.system()   # "Windows", "Darwin" or "Linux"
 
 
+class FatalError(Exception):
+    """A problem that reconnecting won't fix (wrong token, duplicate team)."""
+
+
 def log(text):
     print(time.strftime("[%H:%M:%S] ") + text, flush=True)
 
@@ -167,6 +171,12 @@ def handle_message(msg, keys):
         log(f"Registered as team {msg.get('team')}. Controlled by: {station or 'nobody yet'}")
     elif kind == "error":
         log(f"Relay error: {msg.get('message')}")
+        # Act on the message itself: some proxies (Render) delay the close frame.
+        if msg.get("code") == "bad_token":
+            raise FatalError("the relay rejected the token. Check --token.")
+        if msg.get("code") == "replaced":
+            raise FatalError("another laptop connected with this team ID. "
+                             "Exiting so the two don't fight. Check your team ID.")
     # heartbeats only refresh last_msg
 
 
@@ -181,7 +191,7 @@ async def run(args, keys):
             try:
                 async with connect(args.server, ssl=ssl_context_for(args.server),
                                    ping_interval=5, ping_timeout=10,
-                                   open_timeout=15) as ws:
+                                   open_timeout=15, close_timeout=2) as ws:
                     await ws.send(hello)
                     log(f"CONNECTED  (team {args.team})")
                     delay = 0.5
@@ -192,6 +202,9 @@ async def run(args, keys):
                         except ValueError:
                             log("ignored a non-JSON message")
                     log(f"DISCONNECTED (relay closed the connection, code {ws.close_code})")
+            except FatalError as e:
+                keys.release_all("disconnected")
+                sys.exit(f"ERROR: {e}")
             except ConnectionClosed as e:
                 code = e.rcvd.code if e.rcvd else None
                 if code == CLOSE_BAD_TOKEN:

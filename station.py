@@ -139,6 +139,7 @@ class RelayClient:
     def _thread(self):
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self._run())
+        self.loop.run_until_complete(self.loop.shutdown_asyncgens())
 
     async def _run(self):
         delay = 0.5
@@ -147,7 +148,8 @@ class RelayClient:
             self.status = "connecting"
             try:
                 async with connect(self.server, ssl=ctx, ping_interval=5,
-                                   ping_timeout=10, open_timeout=15) as ws:
+                                   ping_timeout=10, open_timeout=15,
+                                   close_timeout=2) as ws:
                     await ws.send(json.dumps({
                         "role": "station", "name": self.name,
                         "token": self.token, "team": self.wanted_team,
@@ -178,7 +180,8 @@ class RelayClient:
             self.status = f"disconnected - retry in {delay:.0f}s"
             await asyncio.sleep(delay)
             delay = min(delay * 2, 5.0)
-        self.status = "closed" if self.closing else self.status
+        if self.closing and self.status != "WRONG TOKEN":
+            self.status = "closed"
         self.stopped.set()
 
     async def _reader(self, ws):
@@ -204,6 +207,11 @@ class RelayClient:
                 self.team_online = False
                 self.show(f"Team {msg.get('team')} listener went OFFLINE")
             elif kind == "error":
+                if msg.get("code") == "bad_token":
+                    self.closing = True           # retrying won't help
+                    self.status = "WRONG TOKEN"
+                    await ws.close()
+                    return
                 if msg.get("code") == "team_taken":
                     if msg.get("team") == self.team:
                         self.team = None          # lost it while reconnecting

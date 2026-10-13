@@ -89,7 +89,7 @@ async def main():
         except ImportError:
             ctx = ssl.create_default_context()
 
-    async with connect(args.server, ssl=ctx) as ws:
+    async with connect(args.server, ssl=ctx, close_timeout=2) as ws:
         await ws.send(json.dumps({"role": "station", "name": args.name,
                                   "token": args.token}))
         log(args.name, f"relay says {json.loads(await ws.recv())}")   # welcome
