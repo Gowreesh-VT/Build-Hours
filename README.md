@@ -1,7 +1,7 @@
 # Game-Dev-Event: head-gesture game controller
 
-Teams build keyboard games (**Arrow keys + Z**). At demo time a webcam "station" reads the
-player's head pose and mouth and presses those keys on the team's laptop remotely.
+Teams build keyboard games (**Arrow keys + Z + Space**). At demo time a webcam "station" reads the
+player's head pose, mouth and blinks and presses those keys on the team's laptop remotely.
 
 ```
 station.py (webcam, organizer)  --->  relay.py (Render)  <---  listener.py (team laptop)
@@ -14,7 +14,7 @@ device-to-device traffic. One relay handles 25 listeners and up to 5 stations.
 |------|-----------|
 | `relay.py` | WebSocket relay + `/status` and `/health` HTTP endpoints |
 | `listener.py` | Runs on each team laptop and presses the keys (`--test` = print only) |
-| `station.py` | Webcam app: head pose and mouth → keys, with overlay and hotkeys |
+| `station.py` | Webcam app: head pose, mouth and blinks → keys, with overlay and hotkeys |
 | `tools/fake_station.py` | Sends scripted keys to a team (no webcam needed) |
 | `tools/key_viewer.html` | Browser page that shows which keys are held |
 | `render.yaml`, `Dockerfile` | Deployment |

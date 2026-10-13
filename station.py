@@ -1,5 +1,5 @@
 """
-Demo station: turns head gestures from a webcam into Arrow/Z key presses
+Demo station: turns head gestures from a webcam into Arrow/Z/Space key presses
 on a team's laptop, through the event relay.
 
 Usage:
@@ -9,6 +9,7 @@ Gestures (relative to a calibrated neutral pose):
     tilt head up / down     -> Up / Down
     turn head left / right  -> Left / Right   (diagonals allowed)
     open mouth              -> Z
+    blink (eyes closed a bit longer than a natural blink) -> Space
 Holding a gesture holds the key. No face = all keys released.
 
 Hotkeys (in the video window):
@@ -48,6 +49,9 @@ DEFAULTS = {
     "pitch_exit": 5.0,
     "mouth_enter": 0.25,    # mouth opening above the calibrated closed value
     "mouth_exit": 0.15,
+    "blink_enter": 0.45,    # eye closure: 0 = calibrated open eyes, 1 = fully shut
+    "blink_exit": 0.30,
+    "blink_hold_ms": 200,   # natural blinks are ~100-150 ms; ignore anything shorter
     "smoothing": 0.5,       # EMA weight of the newest frame (1.0 = no smoothing)
     "sensitivity": 1.0,     # thresholds are divided by this; +/- adjusts it
     "invert_yaw": False,
@@ -57,7 +61,7 @@ DEFAULTS = {
     "model_path": "face_landmarker.task",
 }
 
-KEY_ORDER = ("up", "down", "left", "right", "z")
+KEY_ORDER = ("up", "down", "left", "right", "z", "space")
 
 # MediaPipe face mesh landmark indices
 NOSE_TIP = 1
@@ -65,6 +69,9 @@ FACE_LEFT, FACE_RIGHT = 234, 454        # face edges at cheek height
 EYE_LEFT, EYE_RIGHT = 33, 263           # outer eye corners
 LIP_TOP, LIP_BOTTOM = 13, 14            # inner lips
 MOUTH_LEFT, MOUTH_RIGHT = 61, 291       # mouth corners
+# Eye outline: corner, two upper-lid points, corner, two lower-lid points
+LEFT_EYE = (33, 160, 158, 133, 153, 144)
+RIGHT_EYE = (362, 385, 387, 263, 373, 380)
 
 CALIBRATION_COUNTDOWN = 3.0
 CALIBRATION_SAMPLE = 1.0
@@ -297,6 +304,7 @@ def measure(landmarks, width, height):
     yaw   : nose offset from face centre, % of face width (+ = image right)
     pitch : nose below the eye line, % of face width   (+ = lower)
     mouth : lip gap / mouth width
+    eyes  : eye aspect ratio, averaged over both eyes (lid gap / eye width)
     """
     def pt(i):
         return np.array([landmarks[i].x * width, landmarks[i].y * height])
@@ -306,10 +314,17 @@ def measure(landmarks, width, height):
     face_w = max(np.linalg.norm(right - left), 1e-6)
     eye_y = (pt(EYE_LEFT)[1] + pt(EYE_RIGHT)[1]) / 2
     mouth_w = max(np.linalg.norm(pt(MOUTH_RIGHT) - pt(MOUTH_LEFT)), 1e-6)
+
+    def eye_ratio(idx):
+        p1, p2, p3, p4, p5, p6 = (pt(i) for i in idx)
+        width = max(np.linalg.norm(p4 - p1), 1e-6)
+        return (np.linalg.norm(p2 - p6) + np.linalg.norm(p3 - p5)) / (2 * width)
+
     return {
         "yaw": (nose[0] - (left[0] + right[0]) / 2) / face_w * 100,
         "pitch": (nose[1] - eye_y) / face_w * 100,
         "mouth": np.linalg.norm(pt(LIP_BOTTOM) - pt(LIP_TOP)) / mouth_w,
+        "eyes": (eye_ratio(LEFT_EYE) + eye_ratio(RIGHT_EYE)) / 2,
         "nose": nose,
     }
 
@@ -319,22 +334,24 @@ class GestureMapper:
 
     def __init__(self, cfg):
         self.cfg = cfg
-        self.neutral = None        # {"yaw", "pitch", "mouth"} from calibration
+        self.neutral = None        # {"yaw", "pitch", "mouth", "eyes"} from calibration
         self.smooth = None
         self.active = set()
-        self.values = {"yaw": 0.0, "pitch": 0.0, "mouth": 0.0}
+        self.closed_since = None   # when the eyes last closed past blink_enter
+        self.values = {"yaw": 0.0, "pitch": 0.0, "mouth": 0.0, "blink": 0.0}
 
     def calibrate(self, samples):
         self.neutral = {k: float(np.mean([s[k] for s in samples]))
-                        for k in ("yaw", "pitch", "mouth")}
+                        for k in ("yaw", "pitch", "mouth", "eyes")}
         self.reset()
 
     def reset(self):
         self.smooth = None
         self.active = set()
+        self.closed_since = None
 
     def threshold(self, name):
-        """(enter, exit) for 'yaw' / 'pitch' / 'mouth' at current sensitivity."""
+        """(enter, exit) for 'yaw' / 'pitch' / 'mouth' / 'blink' at current sensitivity."""
         s = self.cfg["sensitivity"]
         return self.cfg[name + "_enter"] / s, self.cfg[name + "_exit"] / s
 
@@ -345,9 +362,9 @@ class GestureMapper:
 
         a = self.cfg["smoothing"]
         if self.smooth is None:
-            self.smooth = {k: raw[k] for k in self.values}
+            self.smooth = {k: raw[k] for k in ("yaw", "pitch", "mouth")}
         else:
-            for k in self.values:
+            for k in self.smooth:
                 self.smooth[k] = a * raw[k] + (1 - a) * self.smooth[k]
 
         # Signed so that + means the PLAYER's right / up (camera is not mirrored:
@@ -355,11 +372,13 @@ class GestureMapper:
         yaw = -(self.smooth["yaw"] - self.neutral["yaw"])
         pitch = -(self.smooth["pitch"] - self.neutral["pitch"])
         mouth = self.smooth["mouth"] - self.neutral["mouth"]
+        # Blinks are short, so use the raw (unsmoothed) eye value.
+        blink = 1 - raw["eyes"] / max(self.neutral["eyes"], 1e-6)
         if self.cfg["invert_yaw"]:
             yaw = -yaw
         if self.cfg["invert_pitch"]:
             pitch = -pitch
-        self.values = {"yaw": yaw, "pitch": pitch, "mouth": mouth}
+        self.values = {"yaw": yaw, "pitch": pitch, "mouth": mouth, "blink": blink}
 
         inputs = {
             "up": (pitch, "pitch"), "down": (-pitch, "pitch"),
@@ -373,6 +392,18 @@ class GestureMapper:
                 self.active.add(key)
             else:
                 self.active.discard(key)
+
+        # Space: eyes must stay closed longer than a natural blink.
+        enter, exit_ = self.threshold("blink")
+        eyes_closed = blink > (exit_ if self.closed_since else enter)
+        if not eyes_closed:
+            self.closed_since = None
+            self.active.discard("space")
+        else:
+            if self.closed_since is None:
+                self.closed_since = time.monotonic()
+            if time.monotonic() - self.closed_since >= self.cfg["blink_hold_ms"] / 1000:
+                self.active.add("space")
         return set(self.active)
 
 
@@ -425,16 +456,20 @@ def draw_keys(img, held):
         "down": (x0 + size + gap, y0 + size + gap),
         "right": (x0 + 2 * (size + gap), y0 + size + gap),
         "z": (x0 + 3 * (size + gap) + 10, y0 + size + gap),
+        "space": (x0 + 4 * (size + gap) + 10, y0 + size + gap),
     }
     for key, (x, y) in boxes.items():
         on = key in held
-        cv2.rectangle(img, (x, y), (x + size, y + size), GREEN if on else GREY, -1)
-        cv2.rectangle(img, (x, y), (x + size, y + size), WHITE, 1)
+        w = 2 * size if key == "space" else size
+        cv2.rectangle(img, (x, y), (x + w, y + size), GREEN if on else GREY, -1)
+        cv2.rectangle(img, (x, y), (x + w, y + size), WHITE, 1)
         cx, cy, r = x + size // 2, y + size // 2, size // 3
         tips = {"up": ((cx, cy + r), (cx, cy - r)), "down": ((cx, cy - r), (cx, cy + r)),
                 "left": ((cx + r, cy), (cx - r, cy)), "right": ((cx - r, cy), (cx + r, cy))}
         if key == "z":
             cv2.putText(img, "Z", (cx - 8, cy + 8), FONT, 0.7, WHITE, 2, cv2.LINE_AA)
+        elif key == "space":
+            cv2.putText(img, "SPACE", (x + 7, cy + 6), FONT, 0.5, WHITE, 1, cv2.LINE_AA)
         else:
             cv2.arrowedLine(img, *tips[key], WHITE, 2, tipLength=0.45)
 
@@ -500,7 +535,7 @@ def draw_overlay(img, st):
     if st["calib_start"] is not None:
         t = now - st["calib_start"]
         if t < CALIBRATION_COUNTDOWN:
-            center_text(img, "Look straight, mouth closed", h // 2 - 40, 0.8, YELLOW)
+            center_text(img, "Look straight, eyes open, mouth closed", h // 2 - 40, 0.8, YELLOW)
             center_text(img, str(int(CALIBRATION_COUNTDOWN - t) + 1), h // 2 + 30, 2.5, YELLOW, 4)
         else:
             center_text(img, "Hold still...", h // 2, 1.0, YELLOW)
@@ -515,11 +550,12 @@ def draw_overlay(img, st):
 
     # Keys and gauges
     draw_keys(img, st["keys"].held)
-    bx, by = w - 165, h - 88
+    bx, by = w - 165, h - 110
     v = mapper.values
     draw_bar(img, "pitch", v["pitch"], *mapper.threshold("pitch"), bx, by, True)
     draw_bar(img, "yaw", v["yaw"], *mapper.threshold("yaw"), bx, by + 22, True)
     draw_bar(img, "mouth", v["mouth"], *mapper.threshold("mouth"), bx, by + 44, False)
+    draw_bar(img, "blink", v["blink"], *mapper.threshold("blink"), bx, by + 66, False)
 
     text(img, "C calib  T team  P pause  R release  +/- sens  M mirror  Q quit",
          (8, h - 8), 0.42, (220, 220, 220))

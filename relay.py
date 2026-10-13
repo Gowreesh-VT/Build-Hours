@@ -46,7 +46,7 @@ from websockets.datastructures import Headers
 from websockets.exceptions import ConnectionClosed
 from websockets.http11 import Response
 
-VALID_KEYS = {"up", "down", "left", "right", "z"}
+VALID_KEYS = {"up", "down", "left", "right", "z", "space"}
 VALID_ACTIONS = {"down", "up"}
 PING_INTERVAL = 5     # seconds between keepalive pings
 PING_TIMEOUT = 10     # drop the client if no pong within this time

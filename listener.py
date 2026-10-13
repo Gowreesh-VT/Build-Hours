@@ -7,7 +7,7 @@ Usage:
     python listener.py --test ...     (prints events, presses NO keys)
 
 Values can also come from config.json ("team", "server", "token").
-Only Arrow keys and Z are ever pressed.
+Only Arrow keys, Z and Space are ever pressed.
 """
 
 import argparse
@@ -23,7 +23,7 @@ import time
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake, InvalidURI
 
-VALID_KEYS = ("up", "down", "left", "right", "z")
+VALID_KEYS = ("up", "down", "left", "right", "z", "space")
 SILENCE_TIMEOUT = 2.0    # release everything if nothing arrives for this long
 MAX_BACKOFF = 5.0
 
@@ -56,7 +56,7 @@ def make_injector():
     from pynput.keyboard import Controller, Key
     keyboard = Controller()
     keymap = {"up": Key.up, "down": Key.down, "left": Key.left,
-              "right": Key.right, "z": "z"}
+              "right": Key.right, "z": "z", "space": Key.space}
     return (lambda k: keyboard.press(keymap[k]),
             lambda k: keyboard.release(keymap[k]))
 

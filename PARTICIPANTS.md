@@ -1,8 +1,9 @@
 # Participants: running the listener
 
 At demo time an organizer's webcam station plays your game through head gestures.
-`listener.py` runs on **your** laptop and presses **Arrow keys and Z** for it.
-That's the only input it ever sends, so build your game around **Arrow keys + Z**.
+`listener.py` runs on **your** laptop and presses **Arrow keys, Z and Space** for it.
+That's the only input it ever sends, so build your game around **Arrow keys + Z + Space**.
+(Space comes from a deliberate blink, so don't make it something players must spam.)
 
 You'll get from the organizers: your **team ID** (e.g. `07`), the **server URL**, and the **token**.
 
@@ -38,7 +39,7 @@ You should see `CONNECTED (team 07)` and `Registered as team 07`.
 
 Then check that key presses arrive. Stop the test with Ctrl+C, run the same command **without** `--test`,
 open `tools/key_viewer.html` in a browser, **click the page**, and ask an organizer to send test keys.
-The arrows and Z should light up.
+The arrows, Z and Space should light up.
 
 **5. Demo time.** Start the listener (without `--test`), start your game, and
 **click your game window so it has keyboard focus**. Leave both running. Ctrl+C stops the listener.
@@ -67,7 +68,7 @@ It reconnects on its own.
 - Click inside your game window. Keys go to whichever window has focus.
 - Windows: if your game or engine runs **as Administrator**, run the terminal as Administrator too.
   Windows blocks key presses into elevated windows.
-- Make sure the game reads Arrow keys and Z (not WASD/space).
+- Make sure the game reads Arrow keys, Z and Space (not WASD).
 - Check with `tools/key_viewer.html` first. If keys show there, the problem is in the game.
 
 **macOS: "macOS has NOT given this terminal permission to press keys"**

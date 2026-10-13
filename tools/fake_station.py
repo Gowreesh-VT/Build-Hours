@@ -24,8 +24,8 @@ import time
 
 from websockets.asyncio.client import connect
 
-DEFAULT_SCRIPT = ("up 0.5, down 0.5, left 0.5, right 0.5, z 0.3, "
-                  "up+left 0.8, down+right 0.8, wait 0.5, right+z 0.6")
+DEFAULT_SCRIPT = ("up 0.5, down 0.5, left 0.5, right 0.5, z 0.3, space 0.3, "
+                  "up+left 0.8, down+right 0.8, wait 0.5, right+z 0.6, left+space 0.6")
 
 
 def log(name, text):

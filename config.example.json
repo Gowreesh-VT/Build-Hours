@@ -2,7 +2,6 @@
   "server": "wss://YOUR-APP.onrender.com",
   "token": "ASK-THE-ORGANIZERS",
   "team": "07",
-
   "station": {
     "name": "station1",
     "camera": 0,
@@ -12,6 +11,9 @@
     "pitch_exit": 5.0,
     "mouth_enter": 0.25,
     "mouth_exit": 0.15,
+    "blink_enter": 0.45,
+    "blink_exit": 0.3,
+    "blink_hold_ms": 200,
     "smoothing": 0.5,
     "sensitivity": 1.0,
     "invert_yaw": false,
