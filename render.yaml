@@ -1,0 +1,18 @@
+# Render Blueprint for the gesture relay.
+# Dashboard: New + > Blueprint > pick this repo. You'll be asked for EVENT_TOKEN.
+services:
+  - type: web
+    name: gesture-relay
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements-relay.txt
+    startCommand: python relay.py
+    healthCheckPath: /health
+    envVars:
+      - key: EVENT_TOKEN
+        sync: false          # secret: you type it in the dashboard, not in git
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: PYTHONUNBUFFERED
+        value: "1"
