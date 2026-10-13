@@ -71,6 +71,11 @@ It reconnects on its own.
 - Check with `tools/key_viewer.html` first. If keys show there, the problem is in the game.
 
 **macOS: "macOS has NOT given this terminal permission to press keys"**
+
+The listener opens the right settings page for you. If it doesn't, run
+`open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"`.
+Note: this is the **Accessibility** list inside **Privacy & Security**, not the top-level
+"Accessibility" settings (VoiceOver, Zoom...).
 1. System Settings → Privacy & Security → **Accessibility**.
 2. Add the app you run the script from (Terminal, iTerm, VS Code...) and switch it **on**.
    If it's already there, switch it off and on again.
@@ -79,6 +84,10 @@ It reconnects on its own.
 **Linux: keys don't arrive**
 - `pynput` needs an **X11** session. On Wayland, log out and pick "Ubuntu on Xorg" (or similar)
   at the login screen.
+
+**macOS: `pip install` fails building `pyobjc-core`**
+- Update your copy of `requirements-listener.txt` (it now pins a version that works on
+  macOS's built-in Python 3.9), or install Python 3.12+ from python.org and make a new venv.
 
 **Antivirus warning or the script gets blocked**
 - `listener.py` is a plain, readable Python file that simulates key presses, which some antivirus

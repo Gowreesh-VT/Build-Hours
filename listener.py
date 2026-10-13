@@ -16,6 +16,7 @@ import json
 import os
 import platform
 import ssl
+import subprocess
 import sys
 import time
 
@@ -111,17 +112,23 @@ def mac_accessibility_ok():
         return True   # can't tell; assume fine
 
 
+ACCESSIBILITY_SETTINGS = ("x-apple.systempreferences:"
+                          "com.apple.preference.security?Privacy_Accessibility")
+
+
 def print_mac_permission_help():
     print("""
 !!! macOS has NOT given this terminal permission to press keys. !!!
 
-  1. Open System Settings > Privacy & Security > Accessibility
-  2. Click +, add the app you run this from (Terminal, iTerm, VS Code...)
-     and switch it ON. If it is already listed, turn it off and on again.
-  3. Quit that app completely (Cmd+Q), reopen it, and run this script again.
+  Opening System Settings > Privacy & Security > Accessibility for you...
+  1. Find the app you run this from (Terminal, iTerm, VS Code...) and switch
+     it ON. Not listed? Click + and add it (Terminal is in Applications >
+     Utilities). Already on? Switch it off and on again.
+  2. Quit that app completely (Cmd+Q), reopen it, and run this script again.
 
 (Use --test to try the connection without pressing keys.)
 """, flush=True)
+    subprocess.run(["open", ACCESSIBILITY_SETTINGS], check=False)
 
 
 # ----------------------------------------------------------- networking ----
@@ -264,7 +271,12 @@ def main():
     if not args.test and SYSTEM == "Darwin" and not mac_accessibility_ok():
         print_mac_permission_help()
 
-    keys = Keys(inject=not args.test)
+    try:
+        keys = Keys(inject=not args.test)
+    except ImportError as e:
+        sys.exit(f"ERROR: {e}.\nThis Python ({sys.executable}) is missing the key "
+                 "library. Install it with:\n"
+                 f"  {sys.executable} -m pip install -r requirements-listener.txt")
     try:
         asyncio.run(run(args, keys))
     except KeyboardInterrupt:
