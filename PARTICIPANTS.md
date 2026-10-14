@@ -5,7 +5,16 @@ At demo time an organizer's webcam station plays your game through head gestures
 That's the only input it ever sends, so build your game around **Arrow keys + Z + Space**.
 (Space comes from a deliberate blink, so don't make it something players must spam.)
 
-You'll get from the organizers: your **team ID** (e.g. `07`), the **server URL**, and the **token**.
+You'll get from the organizers: your **team ID** (e.g. `07`) and the **token**.
+
+**Which server?** The listener has two built-in servers. Use the one the organizers tell you:
+
+| Flag | Server | When |
+|------|--------|------|
+| `--2` | Event Wi-Fi relay (fast, no internet needed) | Default at the event. Your laptop must be on the event Wi-Fi or hotspot the organizers name. |
+| `--1` | Internet relay | Backup, works from any network with internet. |
+
+If the organizers give you an address instead, use `--server ws://<address>:8765`.
 
 ## Setup in 5 steps
 
@@ -32,7 +41,7 @@ python3 -m venv venv && source venv/bin/activate && pip install -r requirements-
 
 First the connection test. It presses **no** keys. Run it at the registration desk:
 ```bash
-python listener.py --team 07 --server wss://<app>.onrender.com --token <TOKEN> --test
+python listener.py --team 07 --token <TOKEN> --2 --test
 ```
 You should see `CONNECTED (team 07)` and `Registered as team 07`.
 (On Windows use `py` instead of `python` if `python` isn't found. On macOS/Linux use the venv from step 3.)
@@ -103,5 +112,9 @@ Note: this is the **Accessibility** list inside **Privacy & Security**, not the 
 **"another laptop connected as team 07"**: two laptops used the same team ID.
 Only one listener per team. Check your team number.
 
-**Stuck on "Reconnecting..."**: check your internet. The organizers may switch to a
-local fallback server and give you a new `ws://...` address. Restart with that `--server`.
+**Stuck on "Reconnecting..."**: with `--2`, check you're on the event Wi-Fi / hotspot the
+organizers named. With `--1`, check your internet (the first connection can take up to a minute).
+The organizers may tell you to switch between `--2` and `--1`; just restart the listener with the other flag.
+
+**"preset 2 ... has no address yet"**: your copy of `listener.py` is older than the event setup.
+Download it again, or use the address the organizers give you: `--server ws://<address>:8765`.

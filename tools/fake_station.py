@@ -2,7 +2,7 @@
 Fake station: sends a scripted key sequence to one team, so you can test a
 listener without a webcam.
 
-    python tools/fake_station.py --server ws://localhost:8765 --token XXX --team 07
+    python tools/fake_station.py --token XXX --team 07 --1      (or --2, or --server URL)
 
 Script steps (comma separated, --script):
     up 0.5          press Up, hold 0.5s, release
@@ -18,11 +18,15 @@ Other options:
 import argparse
 import asyncio
 import json
+import os
 import ssl
 import sys
 import time
 
 from websockets.asyncio.client import connect
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from listener import add_server_args, resolve_server   # noqa: E402  (shared presets)
 
 DEFAULT_SCRIPT = ("up 0.5, down 0.5, left 0.5, right 0.5, z 0.3, space 0.3, "
                   "up+left 0.8, down+right 0.8, wait 0.5, right+z 0.6, left+space 0.6")
@@ -72,7 +76,7 @@ async def print_replies(ws, name):
 
 async def main():
     p = argparse.ArgumentParser(description="Send scripted keys to a team")
-    p.add_argument("--server", required=True)
+    add_server_args(p)
     p.add_argument("--token", required=True)
     p.add_argument("--team", required=True)
     p.add_argument("--name", default="fake-station")
@@ -80,6 +84,9 @@ async def main():
     p.add_argument("--stay", type=float, default=0.0)
     p.add_argument("--no-heartbeat", action="store_true")
     args = p.parse_args()
+    args.server = resolve_server(args.server)
+    if not args.server:
+        p.error("give --1, --2 or --server URL")
 
     ctx = None
     if args.server.startswith("wss://"):

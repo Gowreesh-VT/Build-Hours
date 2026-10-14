@@ -3,7 +3,9 @@ Team listener: receives key events from the event relay and presses the keys
 on this laptop, so a station's head gestures can play your game.
 
 Usage:
-    python listener.py --team 07 --server wss://<app>.onrender.com --token XXX
+    python listener.py --team 07 --token XXX --1    (preset 1: internet relay)
+    python listener.py --team 07 --token XXX --2    (preset 2: event Wi-Fi relay)
+    python listener.py --team 07 --token XXX --server ws://10.0.0.5:8765
     python listener.py --test ...     (prints events, presses NO keys)
 
 Values can also come from config.json ("team", "server", "token").
@@ -26,6 +28,14 @@ from websockets.exceptions import ConnectionClosed, InvalidHandshake, InvalidURI
 VALID_KEYS = ("up", "down", "left", "right", "z", "space")
 SILENCE_TIMEOUT = 2.0    # release everything if nothing arrives for this long
 MAX_BACKOFF = 5.0
+
+# Server presets, chosen with --1 / --2 (or --server 1, --server local, ...).
+# Organizers: put the event Wi-Fi relay laptop's address in preset 2 before check-in.
+PRESETS = {
+    "1": ("internet relay (Render)", "wss://gesture-relay-xbs9.onrender.com"),
+    "2": ("event Wi-Fi relay", "ws://LOCAL-RELAY-IP:8765"),
+}
+PRESET_ALIASES = {"render": "1", "internet": "1", "local": "2", "wifi": "2", "lan": "2"}
 
 CLOSE_BAD_TOKEN = 4001
 CLOSE_REPLACED = 4003
@@ -234,10 +244,32 @@ async def run(args, keys):
         dog.cancel()
 
 
+def add_server_args(parser):
+    """--server plus the --1 / --2 preset shortcuts (shared with station.py)."""
+    parser.add_argument("--server", help="relay URL, or a preset: 1 = internet, 2 = event Wi-Fi")
+    for key, (label, _) in PRESETS.items():
+        parser.add_argument(f"--{key}", dest="server", action="store_const", const=key,
+                            help=f"use preset {key}: {label}")
+
+
+def resolve_server(value):
+    """Turn a preset ("1", "2", "local", ...) into a URL; real URLs pass through."""
+    if value is None:
+        return None
+    key = PRESET_ALIASES.get(str(value).lower(), str(value))
+    if key not in PRESETS:
+        return value
+    label, url = PRESETS[key]
+    if "LOCAL-RELAY-IP" in url:
+        sys.exit(f"ERROR: preset {key} ({label}) has no address yet. Ask the organizers "
+                 "for it and use --server ws://<address>:8765 instead.")
+    return url
+
+
 def load_args():
     parser = argparse.ArgumentParser(description="Game jam key listener")
     parser.add_argument("--team", help="your team ID, e.g. 07")
-    parser.add_argument("--server", help="relay URL, e.g. wss://xxx.onrender.com")
+    add_server_args(parser)
     parser.add_argument("--token", help="event token from the organizers")
     parser.add_argument("--config", default="config.json",
                         help="optional JSON file with team/server/token")
@@ -254,7 +286,9 @@ def load_args():
 
     missing = [n for n in ("team", "server", "token") if not getattr(args, n)]
     if missing:
-        parser.error("missing " + ", ".join("--" + n for n in missing))
+        parser.error("missing " + ", ".join("--" + n for n in missing)
+                     + " (for the server you can use --1 or --2)")
+    args.server = resolve_server(args.server)
     args.team = args.team.strip().zfill(2) if args.team.strip().isdigit() else args.team.strip()
     return args
 

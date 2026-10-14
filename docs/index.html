@@ -66,6 +66,7 @@
     padding: 6px 12px; border-radius: 7px; cursor: pointer;
   }
   .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+  .settings .tabs + .tabs { margin-left: 0; }
   .settings .hint { font-size: 12px; color: var(--muted); flex-basis: 100%; margin: 0; }
 
   /* steps */
@@ -158,6 +159,13 @@
       <input id="token" placeholder="from the organizers" autocomplete="off" spellcheck="false">
     </div>
     <div class="field">
+      <label>Server</label>
+      <div class="tabs" role="tablist" aria-label="Server" id="server-tabs">
+        <button role="tab" data-server="--2" aria-selected="true" title="Relay on the event Wi-Fi: fast, no internet needed">Event Wi-Fi</button>
+        <button role="tab" data-server="--1" aria-selected="false" title="Relay on the internet: backup">Internet</button>
+      </div>
+    </div>
+    <div class="field">
       <label>Your laptop</label>
       <div class="tabs" role="tablist" aria-label="Operating system">
         <button role="tab" data-os="windows" aria-selected="true">Windows</button>
@@ -165,7 +173,8 @@
         <button role="tab" data-os="linux" aria-selected="false">Linux</button>
       </div>
     </div>
-    <p class="hint">Fill these in and every command below updates. Your token stays in this browser; it is never sent anywhere.</p>
+    <p class="hint">Fill these in and every command below updates. Use the server the organizers announce
+      (<strong>Event Wi-Fi</strong> = <code>--2</code>, <strong>Internet</strong> = <code>--1</code>). Your token stays in this browser; it is never sent anywhere.</p>
   </div>
 </div>
 
@@ -257,15 +266,16 @@ pip install -r requirements-listener.txt"></pre></div>
   <section class="step" id="s4">
     <div class="step-head"><div class="num">4</div>
       <div><h2>Connection test</h2><p class="when">Safe: <code>--test</code> prints keys but never presses them</p></div></div>
-    <div class="os windows"><div class="cmd"><pre data-tpl="py listener.py --team {TEAM} --server {SERVER} --token {TOKEN} --test"></pre></div></div>
-    <div class="os mac linux"><div class="cmd"><pre data-tpl="python listener.py --team {TEAM} --server {SERVER} --token {TOKEN} --test"></pre></div></div>
+    <div class="os windows"><div class="cmd"><pre data-tpl="py listener.py --team {TEAM} --token {TOKEN} {SERVER} --test"></pre></div></div>
+    <div class="os mac linux"><div class="cmd"><pre data-tpl="python listener.py --team {TEAM} --token {TOKEN} {SERVER} --test"></pre></div></div>
     <p>You should see:</p>
     <div class="out" data-tpl="[12:05:10] CONNECTED  (team {TEAM})
 [12:05:10] Registered as team {TEAM}. Controlled by: nobody yet"></div>
     <div class="pass"><strong>Pass:</strong> it says CONNECTED. Leave it running for a moment, then
       press <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop it.</div>
-    <div class="note"><strong>Taking a while?</strong> The first connection can take up to a minute while
-      the server wakes up. It reconnects on its own; just wait.</div>
+    <div class="note"><strong>Not connecting?</strong> With <code>--2</code> (Event Wi-Fi) your laptop must be on
+      the Wi-Fi or hotspot the organizers named. With <code>--1</code> (Internet) the first connection can take up
+      to a minute while the server wakes up. Either way it keeps retrying on its own.</div>
   </section>
 
   <!-- 5 -->
@@ -275,8 +285,8 @@ pip install -r requirements-listener.txt"></pre></div>
         <p class="when">Two terminals: one runs the listener, one sends test keys</p></div></div>
 
     <h3>a. Start the listener for real (no <code>--test</code>)</h3>
-    <div class="os windows"><div class="cmd"><pre data-tpl="py listener.py --team {TEAM} --server {SERVER} --token {TOKEN}"></pre></div></div>
-    <div class="os mac linux"><div class="cmd"><pre data-tpl="python listener.py --team {TEAM} --server {SERVER} --token {TOKEN}"></pre></div></div>
+    <div class="os windows"><div class="cmd"><pre data-tpl="py listener.py --team {TEAM} --token {TOKEN} {SERVER}"></pre></div></div>
+    <div class="os mac linux"><div class="cmd"><pre data-tpl="python listener.py --team {TEAM} --token {TOKEN} {SERVER}"></pre></div></div>
 
     <div class="os mac">
       <div class="note"><strong>macOS permission.</strong> If it prints <em>"macOS has NOT given this
@@ -293,9 +303,9 @@ pip install -r requirements-listener.txt"></pre></div>
       it lights up every key it receives.</p>
 
     <h3>c. In a second terminal, send test keys to yourself</h3>
-    <div class="os windows"><div class="cmd"><pre data-tpl="py tools\fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --name selftest"></pre></div></div>
+    <div class="os windows"><div class="cmd"><pre data-tpl="py tools\fake_station.py --team {TEAM} --token {TOKEN} {SERVER} --name selftest"></pre></div></div>
     <div class="os mac linux"><div class="cmd"><pre data-tpl="source .venv/bin/activate
-python tools/fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --name selftest"></pre></div></div>
+python tools/fake_station.py --team {TEAM} --token {TOKEN} {SERVER} --name selftest"></pre></div></div>
     <p>Then <strong>click back on your game straight away</strong>. Over about 8 seconds it presses up,
       down, left, right, Z, Space and a few combinations like Up + Left.</p>
     <div class="pass"><strong>Pass:</strong> your game moves and reacts to each key, and nothing stays
@@ -309,8 +319,11 @@ python tools/fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --n
     <div class="step-head"><div class="num">6</div>
       <div><h2>At the demo station</h2><p class="when">Check the schedule for your round and station number</p></div></div>
     <ol>
-      <li>Before your round, start the listener (step 5a, without <code>--test</code>) and check it says
-        <strong>CONNECTED</strong>.</li>
+      <li>Before your round, connect your laptop to the network the organizers name for demos (event Wi-Fi
+        or the station's hotspot; the name and password are on a card at the station). Your game must run
+        without internet.</li>
+      <li>Start the listener (step 5a, without <code>--test</code>, with the server the organizers announce) and
+        check it says <strong>CONNECTED</strong>.</li>
       <li>Bring your laptop to your station, plugged in. Open your game on the title screen, make the
         window big, and <strong>click on it</strong>.</li>
       <li>The operator selects your team. Your listener prints
@@ -375,9 +388,13 @@ python tools/fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --n
       <div>Two laptops used the same team number. Only one listener per team: run it on the laptop that
         has the game.</div></details>
     <details><summary>Stuck on "Reconnecting…"</summary>
-      <div>Check your internet connection. The server can take up to a minute to wake up. If the organizers
-        switch to a backup server they'll give you a new address starting with <code>ws://</code>; use it
-        in place of the one in the commands.</div></details>
+      <div>With <code>--2</code>: make sure you're on the event Wi-Fi / hotspot the organizers named. With
+        <code>--1</code>: check your internet; the server can take up to a minute to wake up. If the organizers
+        switch servers, stop the listener with <kbd>Ctrl</kbd>+<kbd>C</kbd> and start it again with the other
+        flag, or with the address they give you: <code>--server ws://&lt;address&gt;:8765</code>.</div></details>
+    <details><summary>"preset 2 … has no address yet"</summary>
+      <div>Your copy of the listener is older than the event setup. Download it again (step 2), or use the
+        address the organizers give you: <code>--server ws://&lt;address&gt;:8765</code>.</div></details>
     <details><summary>Antivirus warning or the script gets blocked</summary>
       <div>The listener is a plain, readable Python file that simulates key presses, which some antivirus
         tools flag. Allow it or add an exception for the folder.</div></details>
@@ -390,7 +407,6 @@ python tools/fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --n
 </div>
 
 <script>
-  const SERVER = "wss://gesture-relay-xbs9.onrender.com";
 
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -406,12 +422,21 @@ python tools/fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --n
     return /^\d+$/.test(t) ? t.padStart(2, "0") : t;
   }
 
+  let serverFlag = store.get("server") || "--2";
+  function setServer(flag) {
+    serverFlag = flag;
+    document.querySelectorAll("#server-tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.server === flag));
+    store.set("server", flag);
+    render();
+  }
+  document.querySelectorAll("#server-tabs button").forEach(b => b.addEventListener("click", () => setServer(b.dataset.server)));
+
   function render() {
     const token = tokenInput.value.trim() || "YOUR_TOKEN";
     document.querySelectorAll("[data-tpl]").forEach(el => {
       el.textContent = el.dataset.tpl
         .replaceAll("{TEAM}", teamValue())
-        .replaceAll("{SERVER}", SERVER)
+        .replaceAll("{SERVER}", serverFlag)
         .replaceAll("{TOKEN}", token);
     });
   }
@@ -424,12 +449,12 @@ python tools/fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --n
   // OS tabs (guess from the browser, remember the choice)
   function setOS(os) {
     document.body.dataset.os = os;
-    document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.os === os));
+    document.querySelectorAll(".tabs button[data-os]").forEach(b => b.setAttribute("aria-selected", b.dataset.os === os));
     store.set("os", os);
   }
   const ua = navigator.userAgent;
   setOS(store.get("os") || (/Mac/.test(ua) ? "mac" : /Linux|X11/.test(ua) && !/Android/.test(ua) ? "linux" : "windows"));
-  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setOS(b.dataset.os)));
+  document.querySelectorAll(".tabs button[data-os]").forEach(b => b.addEventListener("click", () => setOS(b.dataset.os)));
 
   // Copy buttons
   document.querySelectorAll(".cmd").forEach(box => {
@@ -466,7 +491,7 @@ python tools/fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --n
     store.set("theme", next);
   });
 
-  render();
+  setServer(serverFlag);
 </script>
 </body>
 </html>

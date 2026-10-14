@@ -14,8 +14,12 @@ cp config.example.json config.json  # then edit server/token/station.name
 Start it:
 
 ```bash
-python station.py --server wss://<app>.onrender.com --token <TOKEN> --name station1 --camera 0
+python station.py --token <TOKEN> --name station1 --2      # event Wi-Fi relay (primary)
+python station.py --token <TOKEN> --name station1 --1      # internet relay (backup)
 ```
+
+`--2` and `--1` are presets defined at the top of `listener.py` (`PRESETS`). Set preset 2 to the
+relay laptop's address before check-in; see [DEPLOY.md](DEPLOY.md#4-local-relay-event-wi-fi-or-hotspot-preset---2).
 
 - The first run downloads MediaPipe's face model (`face_landmarker.task`, ~4 MB), so do it before the event.
 - Wrong camera? Try `--camera 1`. macOS will ask for camera permission for your terminal app the first time.
@@ -88,7 +92,7 @@ Keep each `exit` value below its `enter` value.
 ## Testing without a webcam
 
 ```bash
-python tools/fake_station.py --server wss://<app>.onrender.com --token <TOKEN> --team 07
+python tools/fake_station.py --token <TOKEN> --team 07 --2
 ```
 
 This sends a scripted sequence of arrows, diagonals, Z and Space. Custom script:
@@ -97,16 +101,22 @@ This sends a scripted sequence of arrows, diagonals, Z and Space. Custom script:
 
 `https://<app>.onrender.com/status` shows every online team and which station controls it.
 
-## Fallback procedure
+## Network plan and fallback
 
-If Render is unreachable (the top bar stays on "disconnected" and `/health` doesn't load):
+**Primary: local relay on the event Wi-Fi (`--2`).** A relay laptop on the event Wi-Fi runs
+`python relay.py --port 8765 --token <TOKEN>`. Keys take a few milliseconds and need no internet.
+If the event Wi-Fi blocks laptops from reaching each other, use a phone hotspot instead
+(only the stations, the relay laptop and the teams demoing that round join it).
 
-1. Don't wait on Render. Set up a hotspot or router, then start the local relay on one
-   organizer laptop: `python relay.py --port 8765 --token <TOKEN>` (see [DEPLOY.md](DEPLOY.md#4-local-fallback-render-down-or-venue-internet-down)).
-2. Write `ws://<that laptop's IP>:8765` on the board.
-3. Stations: quit (**Q**) and restart with `--server ws://<IP>:8765`.
-4. Only the teams about to demo join the hotspot and restart their listener with the new `--server`.
-5. When Render is back, switch everyone back the same way.
+**Backup: internet relay (`--1`).** About 0.3 s per key, with occasional 1 s+ hiccups, and it
+sleeps when idle: open its `/health` page 15 minutes before you need it.
+
+To switch (either direction):
+
+1. Stations: quit (**Q**) and restart with the other flag (`--2` or `--1`).
+2. Teams: stop the listener (Ctrl+C) and restart it with the other flag.
+3. If the relay laptop's IP changed, use `--server ws://<new IP>:8765` everywhere
+   (or update preset 2 in `listener.py`).
 
 If a single station crashes, the relay releases its team and the listener lets go of every
 key within 2 seconds. Restart the station and select the team again.

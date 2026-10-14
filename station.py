@@ -3,7 +3,9 @@ Demo station: turns head gestures from a webcam into Arrow/Z/Space key presses
 on a team's laptop, through the event relay.
 
 Usage:
-    python station.py --server wss://<app>.onrender.com --token XXX --name station1 --camera 0
+    python station.py --token XXX --name station1 --1     (preset 1: internet relay)
+    python station.py --token XXX --name station1 --2     (preset 2: event Wi-Fi relay)
+    python station.py --server ws://10.0.0.5:8765 --token XXX --name station1 --camera 0
 
 Gestures (relative to a calibrated neutral pose):
     tilt head up / down     -> Up / Down
@@ -34,6 +36,8 @@ import numpy as np
 from mediapipe.tasks.python import BaseOptions, vision
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake
+
+from listener import add_server_args, resolve_server   # shared --1 / --2 presets
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODEL_URL = ("https://storage.googleapis.com/mediapipe-models/face_landmarker/"
@@ -603,7 +607,7 @@ def load_config(path):
 
 def parse_args():
     p = argparse.ArgumentParser(description="Head-gesture demo station")
-    p.add_argument("--server", help="relay URL, e.g. wss://xxx.onrender.com")
+    add_server_args(p)
     p.add_argument("--token", help="event token")
     p.add_argument("--name", help="station name shown to everyone")
     p.add_argument("--camera", type=int, help="webcam index (default 0)")
@@ -626,14 +630,14 @@ def open_camera(index):
 def main():
     args = parse_args()
     top, cfg = load_config(args.config)
-    server = args.server or top.get("server")
+    server = resolve_server(args.server or top.get("server"))
     token = args.token or top.get("token")
     if args.name:
         cfg["name"] = args.name
     if args.camera is not None:
         cfg["camera"] = args.camera
     if not server or not token:
-        sys.exit("ERROR: give --server and --token (or put them in config.json)")
+        sys.exit("ERROR: give --1, --2 or --server, and --token (or put them in config.json)")
 
     model = cfg["model_path"]
     if not os.path.isabs(model):
