@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Day Setup</title>
+<meta name="description" content="Head-Gesture Game Jam: what to do after you finish building your game.">
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --ink: #1b1f27; --muted: #5d6573;
+    --line: #dde1e8; --accent: #2457c5; --accent-ink: #ffffff; --accent-soft: #e8eefb;
+    --code-bg: #f1f3f7; --ok-bg: #e7f5ec; --ok-ink: #17643a; --warn-bg: #fff4dc; --warn-ink: #774f00;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12141a; --surface: #1a1d25; --ink: #e8eaf0; --muted: #9aa2b1;
+      --line: #2c313d; --accent: #6f97ff; --accent-ink: #0d1020; --accent-soft: #1f2840;
+      --code-bg: #232733; --ok-bg: #15301f; --ok-ink: #8fdcaa; --warn-bg: #352a10; --warn-ink: #ffd27a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141a; --surface: #1a1d25; --ink: #e8eaf0; --muted: #9aa2b1;
+    --line: #2c313d; --accent: #6f97ff; --accent-ink: #0d1020; --accent-soft: #1f2840;
+    --code-bg: #232733; --ok-bg: #15301f; --ok-ink: #8fdcaa; --warn-bg: #352a10; --warn-ink: #ffd27a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+  header.hero { padding: 48px 0 28px; }
+  .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 6px 0 10px; }
+  .lead { color: var(--muted); font-size: 18px; margin: 0; max-width: 640px; }
+  h2 { font-size: 22px; margin: 0 0 6px; }
+  h3 { font-size: 16px; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--accent); }
+  code, pre, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  :not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 6px; font-size: .9em; }
+  kbd {
+    display: inline-block; padding: 0 7px; border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 6px; background: var(--surface); font-size: .85em;
+  }
+
+  /* settings bar */
+  .settings {
+    position: sticky; top: 0; z-index: 5; background: var(--surface);
+    border-bottom: 1px solid var(--line); box-shadow: 0 1px 8px rgba(0,0,0,.04);
+  }
+  .settings .wrap { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; padding-top: 12px; padding-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field input {
+    font: inherit; font-size: 15px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--ink); width: 120px;
+  }
+  .field.token input { width: 190px; }
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tabs { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .tabs button {
+    font: inherit; font-size: 14px; font-weight: 600; border: 0; background: transparent; color: var(--muted);
+    padding: 6px 12px; border-radius: 7px; cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+  .settings .hint { font-size: 12px; color: var(--muted); flex-basis: 100%; margin: 0; }
+
+  /* steps */
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 6px; padding: 0; list-style: none; }
+  .toc a {
+    display: inline-block; text-decoration: none; font-size: 14px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
+  }
+  .toc a:hover { border-color: var(--accent); }
+  section.step {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 22px 22px 14px; margin: 18px 0; scroll-margin-top: 110px;
+  }
+  .step-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; }
+  .num {
+    flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent); font-weight: 800;
+  }
+  .when { font-size: 13px; color: var(--muted); margin: 0; }
+  ol, ul { padding-left: 22px; margin: 0 0 12px; }
+  li { margin: 4px 0; }
+
+  /* code blocks */
+  .cmd { position: relative; margin: 8px 0 14px; }
+  .cmd pre {
+    margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 84px 12px 14px; overflow-x: auto; font-size: 14px; line-height: 1.55; white-space: pre;
+  }
+  .copy {
+    position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 7px; padding: 4px 10px; cursor: pointer;
+  }
+  .copy.done { background: var(--ok-bg); color: var(--ok-ink); border-color: transparent; }
+  .os { display: none; }
+  body[data-os="windows"] .os.windows, body[data-os="mac"] .os.mac, body[data-os="linux"] .os.linux { display: block; }
+
+  .note, .pass {
+    border-radius: 10px; padding: 10px 14px; margin: 10px 0 14px; font-size: 15px;
+  }
+  .note { background: var(--warn-bg); color: var(--warn-ink); }
+  .pass { background: var(--ok-bg); color: var(--ok-ink); }
+  .note strong, .pass strong { margin-right: 4px; }
+
+  .out {
+    background: var(--code-bg); border-left: 3px solid var(--accent); border-radius: 6px;
+    padding: 8px 12px; font: 13.5px/1.55 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap;
+    margin: 6px 0 12px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 6px 0 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; }
+
+  .check { list-style: none; padding: 0; }
+  .check li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .check input { margin-top: 5px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+
+  details { border-top: 1px solid var(--line); padding: 10px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { cursor: pointer; font-weight: 600; }
+  details > div { padding-top: 6px; color: var(--ink); }
+
+  footer { color: var(--muted); font-size: 14px; padding: 18px 0 48px; }
+  .theme-toggle {
+    font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 8px; padding: 4px 10px; cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    .settings { position: static; }
+    section.step { padding: 18px 14px 8px; scroll-margin-top: 12px; }
+    .step-head { gap: 10px; }
+    .field input, .field.token input { width: 100%; }
+    .field { flex: 1 1 140px; }
+    .cmd pre { font-size: 13px; }
+  }
+</style>
+</head>
+<body data-os="windows">
+
+<div class="settings" role="region" aria-label="Your details">
+  <div class="wrap">
+    <div class="field">
+      <label for="team">Team number</label>
+      <input id="team" inputmode="numeric" maxlength="4" placeholder="07" autocomplete="off">
+    </div>
+    <div class="field token">
+      <label for="token">Event token</label>
+      <input id="token" placeholder="from the organizers" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label>Your laptop</label>
+      <div class="tabs" role="tablist" aria-label="Operating system">
+        <button role="tab" data-os="windows" aria-selected="true">Windows</button>
+        <button role="tab" data-os="mac" aria-selected="false">macOS</button>
+        <button role="tab" data-os="linux" aria-selected="false">Linux</button>
+      </div>
+    </div>
+    <p class="hint">Fill these in and every command below updates. Your token stays in this browser; it is never sent anywhere.</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Head-Gesture Game Jam · MIC Development Department, VIT Chennai</div>
+    <h1>Your game is built. Now get it demo-ready.</h1>
+    <p class="lead">At the demo, a station with a webcam reads the player's head movements and presses
+      your game's keys (arrows, Z and Space) over the network. A small script on your laptop, the
+      <strong>listener</strong>, receives those key presses. These steps take about 10 minutes.</p>
+    <ul class="toc">
+      <li><a href="#s1">1 · Freeze your game</a></li>
+      <li><a href="#s2">2 · Get the listener</a></li>
+      <li><a href="#s3">3 · Install</a></li>
+      <li><a href="#s4">4 · Connection test</a></li>
+      <li><a href="#s5">5 · Key test</a></li>
+      <li><a href="#s6">6 · At the demo station</a></li>
+      <li><a href="#help">Troubleshooting</a></li>
+    </ul>
+  </header>
+
+  <!-- 1 -->
+  <section class="step" id="s1">
+    <div class="step-head"><div class="num">1</div>
+      <div><h2>Freeze your game</h2><p class="when">Build ends at 12:30 PM</p></div></div>
+    <ol>
+      <li>Save everything, and commit it if you use git.</li>
+      <li>Start the game the same way you will at the demo (the command in your README, or open the
+        HTML file) and play one round with the keyboard: arrows, <kbd>Z</kbd>, <kbd>Space</kbd>.</li>
+      <li>Check that holding an arrow keeps moving and releasing stops, and that <kbd>Z</kbd> starts
+        and restarts the game.</li>
+      <li>Close apps you don't need (especially anything that shows pop-ups or notifications), and plug
+        in your charger.</li>
+    </ol>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="s2">
+    <div class="step-head"><div class="num">2</div>
+      <div><h2>Get the listener</h2><p class="when">Put it in its own folder, not inside your game project</p></div></div>
+    <p><strong>Option A: git clone</strong> (if you have git)</p>
+    <div class="os windows mac linux">
+      <div class="cmd"><pre data-tpl="git clone https://github.com/Gowreesh-VT/Game-Dev-Event.git
+cd Game-Dev-Event"></pre></div>
+    </div>
+    <p><strong>Option B: download the ZIP</strong> (no git needed)</p>
+    <ol>
+      <li>Download <a href="https://github.com/Gowreesh-VT/Game-Dev-Event/archive/refs/heads/main.zip">Game-Dev-Event-main.zip</a> and unzip it.</li>
+      <li>Open a terminal inside the unzipped <code>Game-Dev-Event-main</code> folder.
+        <span class="os windows">On Windows: open the folder in File Explorer, click the address bar, type <code>cmd</code> and press Enter.</span>
+        <span class="os mac">On macOS: right-click the folder in Finder &gt; <em>New Terminal at Folder</em>.</span>
+        <span class="os linux">On Linux: right-click in the folder &gt; <em>Open in Terminal</em>.</span>
+      </li>
+    </ol>
+    <p>You only need three files from it: <code>listener.py</code>, <code>requirements-listener.txt</code>
+      and <code>tools/key_viewer.html</code>.</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="s3">
+    <div class="step-head"><div class="num">3</div>
+      <div><h2>Install</h2><p class="when">Needs Python 3.10 or newer (3.12+ recommended)</p></div></div>
+
+    <div class="os windows">
+      <p>No Python yet? Install it from <a href="https://www.python.org/downloads/">python.org</a> and
+        tick <strong>"Add python.exe to PATH"</strong> during setup. Then, in the terminal from step 2:</p>
+      <div class="cmd"><pre data-tpl="py -m pip install -r requirements-listener.txt"></pre></div>
+    </div>
+    <div class="os mac">
+      <p>No Python yet? Install it from <a href="https://www.python.org/downloads/">python.org</a> or with
+        <code>brew install python</code>. Then, in the terminal from step 2:</p>
+      <div class="cmd"><pre data-tpl="python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-listener.txt"></pre></div>
+      <div class="note"><strong>New terminal window?</strong> Run <code>source .venv/bin/activate</code>
+        again first. Your prompt should start with <code>(.venv)</code>.</div>
+    </div>
+    <div class="os linux">
+      <p>Install Python if needed: <code>sudo apt install python3 python3-venv python3-pip</code>. Then:</p>
+      <div class="cmd"><pre data-tpl="python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-listener.txt"></pre></div>
+      <div class="note"><strong>Use an X11 session.</strong> Key presses don't reach apps under Wayland.
+        Log out and pick "Ubuntu on Xorg" (or similar) at the login screen if needed.</div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step" id="s4">
+    <div class="step-head"><div class="num">4</div>
+      <div><h2>Connection test</h2><p class="when">Safe: <code>--test</code> prints keys but never presses them</p></div></div>
+    <div class="os windows"><div class="cmd"><pre data-tpl="py listener.py --team {TEAM} --server {SERVER} --token {TOKEN} --test"></pre></div></div>
+    <div class="os mac linux"><div class="cmd"><pre data-tpl="python listener.py --team {TEAM} --server {SERVER} --token {TOKEN} --test"></pre></div></div>
+    <p>You should see:</p>
+    <div class="out" data-tpl="[12:05:10] CONNECTED  (team {TEAM})
+[12:05:10] Registered as team {TEAM}. Controlled by: nobody yet"></div>
+    <div class="pass"><strong>Pass:</strong> it says CONNECTED. Leave it running for a moment, then
+      press <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop it.</div>
+    <div class="note"><strong>Taking a while?</strong> The first connection can take up to a minute while
+      the server wakes up. It reconnects on its own; just wait.</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="step" id="s5">
+    <div class="step-head"><div class="num">5</div>
+      <div><h2>Key test: make sure your game receives the keys</h2>
+        <p class="when">Two terminals: one runs the listener, one sends test keys</p></div></div>
+
+    <h3>a. Start the listener for real (no <code>--test</code>)</h3>
+    <div class="os windows"><div class="cmd"><pre data-tpl="py listener.py --team {TEAM} --server {SERVER} --token {TOKEN}"></pre></div></div>
+    <div class="os mac linux"><div class="cmd"><pre data-tpl="python listener.py --team {TEAM} --server {SERVER} --token {TOKEN}"></pre></div></div>
+
+    <div class="os mac">
+      <div class="note"><strong>macOS permission.</strong> If it prints <em>"macOS has NOT given this
+        terminal permission to press keys"</em>, it opens the right settings page for you:
+        <strong>System Settings &gt; Privacy &amp; Security &gt; Accessibility</strong> (not the
+        top-level "Accessibility" page). Switch on your terminal app (Terminal, iTerm, VS Code), quit it
+        completely with <kbd>Cmd</kbd>+<kbd>Q</kbd>, reopen it, activate the venv and start the listener
+        again.</div>
+    </div>
+
+    <h3>b. Open your game and click on it</h3>
+    <p>Keys go to whichever window is in front. Not sure your game works? Open
+      <code>tools/key_viewer.html</code> from the listener folder in a browser and click on it instead;
+      it lights up every key it receives.</p>
+
+    <h3>c. In a second terminal, send test keys to yourself</h3>
+    <div class="os windows"><div class="cmd"><pre data-tpl="py tools\fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --name selftest"></pre></div></div>
+    <div class="os mac linux"><div class="cmd"><pre data-tpl="source .venv/bin/activate
+python tools/fake_station.py --team {TEAM} --server {SERVER} --token {TOKEN} --name selftest"></pre></div></div>
+    <p>Then <strong>click back on your game straight away</strong>. Over about 8 seconds it presses up,
+      down, left, right, Z, Space and a few combinations like Up + Left.</p>
+    <div class="pass"><strong>Pass:</strong> your game moves and reacts to each key, and nothing stays
+      held at the end. The listener terminal shows a <code>KEY ... DOWN / UP</code> line for each one.</div>
+    <div class="note"><strong>Got "<span data-tpl="Team {TEAM} is controlled by station…"></span>"?</strong> A demo station has your
+      team right now; that's fine, skip this test. A volunteer can also run this test for you.</div>
+  </section>
+
+  <!-- 6 -->
+  <section class="step" id="s6">
+    <div class="step-head"><div class="num">6</div>
+      <div><h2>At the demo station</h2><p class="when">Check the schedule for your round and station number</p></div></div>
+    <ol>
+      <li>Before your round, start the listener (step 5a, without <code>--test</code>) and check it says
+        <strong>CONNECTED</strong>.</li>
+      <li>Bring your laptop to your station, plugged in. Open your game on the title screen, make the
+        window big, and <strong>click on it</strong>.</li>
+      <li>The operator selects your team. Your listener prints
+        <code>Now controlled by station: station…</code></li>
+      <li>The player sits in front of the webcam and looks straight at it for a few seconds to
+        calibrate.</li>
+      <li>Play! You have 10 minutes. Don't click other windows or alt-tab while playing.</li>
+      <li>When time is up the operator releases your team and all keys let go. Stop the listener with
+        <kbd>Ctrl</kbd>+<kbd>C</kbd>.</li>
+    </ol>
+    <table>
+      <thead><tr><th>Player does</th><th>Your game receives</th></tr></thead>
+      <tbody>
+        <tr><td>Tilt head up / down</td><td><kbd>↑</kbd> / <kbd>↓</kbd> held</td></tr>
+        <tr><td>Turn head left / right</td><td><kbd>←</kbd> / <kbd>→</kbd> held</td></tr>
+        <tr><td>Tilt and turn together</td><td>Diagonals, e.g. <kbd>↑</kbd> + <kbd>←</kbd></td></tr>
+        <tr><td>Open mouth</td><td><kbd>Z</kbd> held</td></tr>
+        <tr><td>Close both eyes for a moment (longer than a normal blink)</td><td><kbd>Space</kbd></td></tr>
+        <tr><td>Back to neutral, or leave the camera view</td><td>Keys released</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- checklist -->
+  <section class="step" id="checklist">
+    <div class="step-head"><div class="num">✓</div>
+      <div><h2>Ready checklist</h2><p class="when">Ticks are saved in this browser</p></div></div>
+    <ul class="check" id="checks">
+      <li><input type="checkbox" id="c1"><label for="c1">Game saved and runs with one command or file</label></li>
+      <li><input type="checkbox" id="c2"><label for="c2">Holding arrows moves, <kbd>Z</kbd> starts and restarts, no mouse needed anywhere</label></li>
+      <li><input type="checkbox" id="c3"><label for="c3">Listener installed; connection test says CONNECTED</label></li>
+      <li><input type="checkbox" id="c4"><label for="c4">Key test passed: the game reacted to every key</label></li>
+      <li><input type="checkbox" id="c5"><label for="c5">macOS only: terminal allowed under Privacy &amp; Security &gt; Accessibility</label></li>
+      <li><input type="checkbox" id="c6"><label for="c6">Charger, and we know our round and station</label></li>
+    </ul>
+  </section>
+
+  <!-- troubleshooting -->
+  <section class="step" id="help">
+    <div class="step-head"><div class="num">?</div>
+      <div><h2>Troubleshooting</h2><p class="when">Still stuck? Ask a volunteer at the desk</p></div></div>
+    <details><summary>The listener shows KEY lines, but my game doesn't react</summary>
+      <div><ul>
+        <li>Click inside your game window; keys only go to the window in front.</li>
+        <li>macOS: allow your terminal under Privacy &amp; Security &gt; Accessibility, then quit and reopen it.</li>
+        <li>Windows: if your game or engine runs as Administrator, run the terminal as Administrator too.</li>
+        <li>Check your game reads held keys every frame and doesn't only wait for key-repeat.</li>
+      </ul></div></details>
+    <details><summary>"python" / "py" is not recognized</summary>
+      <div>Python isn't installed or isn't on PATH. Reinstall from python.org and tick "Add python.exe to
+        PATH" (Windows). On macOS/Linux use <code>python3</code>.</div></details>
+    <details><summary>ModuleNotFoundError: No module named 'websockets' / 'pynput'</summary>
+      <div>The install step didn't run in this terminal. macOS/Linux: run
+        <code>source .venv/bin/activate</code> first (prompt shows <code>(.venv)</code>), then
+        <code>pip install -r requirements-listener.txt</code>. The listener prints the exact command to run.</div></details>
+    <details><summary>macOS: pip fails while building "pyobjc-core"</summary>
+      <div>Download the latest files from step 2 (the requirements file pins a version that works on
+        macOS's built-in Python 3.9), or install Python 3.12+ from python.org and make a new <code>.venv</code>.</div></details>
+    <details><summary>"the relay rejected the token"</summary>
+      <div>The token is wrong. Check it for typos in the box at the top of this page.</div></details>
+    <details><summary>"another laptop connected with this team ID"</summary>
+      <div>Two laptops used the same team number. Only one listener per team: run it on the laptop that
+        has the game.</div></details>
+    <details><summary>Stuck on "Reconnecting…"</summary>
+      <div>Check your internet connection. The server can take up to a minute to wake up. If the organizers
+        switch to a backup server they'll give you a new address starting with <code>ws://</code>; use it
+        in place of the one in the commands.</div></details>
+    <details><summary>Antivirus warning or the script gets blocked</summary>
+      <div>The listener is a plain, readable Python file that simulates key presses, which some antivirus
+        tools flag. Allow it or add an exception for the folder.</div></details>
+  </section>
+
+  <footer>
+    <button class="theme-toggle" id="theme" type="button">Toggle dark / light</button>
+    &nbsp; Head-Gesture Game Jam · Oct 15, 2026 · AB3 Gallery Classroom
+  </footer>
+</div>
+
+<script>
+  const SERVER = "wss://gesture-relay-xbs9.onrender.com";
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+
+  const teamInput = document.getElementById("team");
+  const tokenInput = document.getElementById("token");
+
+  function teamValue() {
+    const t = teamInput.value.trim();
+    if (!t) return "07";
+    return /^\d+$/.test(t) ? t.padStart(2, "0") : t;
+  }
+
+  function render() {
+    const token = tokenInput.value.trim() || "YOUR_TOKEN";
+    document.querySelectorAll("[data-tpl]").forEach(el => {
+      el.textContent = el.dataset.tpl
+        .replaceAll("{TEAM}", teamValue())
+        .replaceAll("{SERVER}", SERVER)
+        .replaceAll("{TOKEN}", token);
+    });
+  }
+
+  teamInput.value = store.get("team") || "";
+  tokenInput.value = store.get("token") || "";
+  teamInput.addEventListener("input", () => { store.set("team", teamInput.value); render(); });
+  tokenInput.addEventListener("input", () => { store.set("token", tokenInput.value); render(); });
+
+  // OS tabs (guess from the browser, remember the choice)
+  function setOS(os) {
+    document.body.dataset.os = os;
+    document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.os === os));
+    store.set("os", os);
+  }
+  const ua = navigator.userAgent;
+  setOS(store.get("os") || (/Mac/.test(ua) ? "mac" : /Linux|X11/.test(ua) && !/Android/.test(ua) ? "linux" : "windows"));
+  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setOS(b.dataset.os)));
+
+  // Copy buttons
+  document.querySelectorAll(".cmd").forEach(box => {
+    const btn = document.createElement("button");
+    btn.className = "copy"; btn.type = "button"; btn.textContent = "Copy";
+    btn.addEventListener("click", async () => {
+      const text = box.querySelector("pre").textContent;
+      try { await navigator.clipboard.writeText(text); }
+      catch (e) {
+        const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand("copy"); ta.remove();
+      }
+      btn.textContent = "Copied"; btn.classList.add("done");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1500);
+    });
+    box.appendChild(btn);
+  });
+
+  // Checklist memory
+  document.querySelectorAll("#checks input").forEach(cb => {
+    cb.checked = store.get(cb.id) === "1";
+    cb.addEventListener("change", () => store.set(cb.id, cb.checked ? "1" : "0"));
+  });
+
+  // Theme toggle
+  const savedTheme = store.get("theme");
+  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  document.getElementById("theme").addEventListener("click", () => {
+    const dark = document.documentElement.dataset.theme
+      ? document.documentElement.dataset.theme === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = dark ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    store.set("theme", next);
+  });
+
+  render();
+</script>
+</body>
+</html>
