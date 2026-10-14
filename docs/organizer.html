@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Organizer Commands</title>
+<meta name="description" content="Head-Gesture Game Jam: step-by-step commands for organizers and participants.">
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --ink: #1b1f27; --muted: #5d6573;
+    --line: #dde1e8; --accent: #2457c5; --accent-ink: #ffffff; --accent-soft: #e8eefb;
+    --code-bg: #f1f3f7; --ok-bg: #e7f5ec; --ok-ink: #17643a; --warn-bg: #fff4dc; --warn-ink: #774f00;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12141a; --surface: #1a1d25; --ink: #e8eaf0; --muted: #9aa2b1;
+      --line: #2c313d; --accent: #6f97ff; --accent-ink: #0d1020; --accent-soft: #1f2840;
+      --code-bg: #232733; --ok-bg: #15301f; --ok-ink: #8fdcaa; --warn-bg: #352a10; --warn-ink: #ffd27a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141a; --surface: #1a1d25; --ink: #e8eaf0; --muted: #9aa2b1;
+    --line: #2c313d; --accent: #6f97ff; --accent-ink: #0d1020; --accent-soft: #1f2840;
+    --code-bg: #232733; --ok-bg: #15301f; --ok-ink: #8fdcaa; --warn-bg: #352a10; --warn-ink: #ffd27a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+  header.hero { padding: 48px 0 28px; }
+  .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 6px 0 10px; }
+  .lead { color: var(--muted); font-size: 18px; margin: 0; max-width: 640px; }
+  h2 { font-size: 22px; margin: 0 0 6px; }
+  h3 { font-size: 16px; margin: 18px 0 6px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--accent); }
+  code, pre, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  :not(pre) > code { background: var(--code-bg); padding: 1px 6px; border-radius: 6px; font-size: .9em; }
+  kbd {
+    display: inline-block; padding: 0 7px; border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 6px; background: var(--surface); font-size: .85em;
+  }
+
+  /* settings bar */
+  .settings {
+    position: sticky; top: 0; z-index: 5; background: var(--surface);
+    border-bottom: 1px solid var(--line); box-shadow: 0 1px 8px rgba(0,0,0,.04);
+  }
+  .settings .wrap { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; padding-top: 12px; padding-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field input {
+    font: inherit; font-size: 15px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--ink); width: 120px;
+  }
+  .field.token input { width: 190px; }
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tabs { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .tabs button {
+    font: inherit; font-size: 14px; font-weight: 600; border: 0; background: transparent; color: var(--muted);
+    padding: 6px 12px; border-radius: 7px; cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+  .settings .tabs + .tabs { margin-left: 0; }
+  .settings .hint { font-size: 12px; color: var(--muted); flex-basis: 100%; margin: 0; }
+
+  /* steps */
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 6px; padding: 0; list-style: none; }
+  .toc a {
+    display: inline-block; text-decoration: none; font-size: 14px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
+  }
+  .toc a:hover { border-color: var(--accent); }
+  section.step {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 22px 22px 14px; margin: 18px 0; scroll-margin-top: 110px;
+  }
+  .step-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; }
+  .num {
+    flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent); font-weight: 800;
+  }
+  .when { font-size: 13px; color: var(--muted); margin: 0; }
+  ol, ul { padding-left: 22px; margin: 0 0 12px; }
+  li { margin: 4px 0; }
+
+  /* code blocks */
+  .cmd { position: relative; margin: 8px 0 14px; }
+  .cmd pre {
+    margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 84px 12px 14px; overflow-x: auto; font-size: 14px; line-height: 1.55; white-space: pre;
+  }
+  .copy {
+    position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 7px; padding: 4px 10px; cursor: pointer;
+  }
+  .copy.done { background: var(--ok-bg); color: var(--ok-ink); border-color: transparent; }
+  .os { display: none; }
+  body[data-os="windows"] .os.windows, body[data-os="mac"] .os.mac, body[data-os="linux"] .os.linux { display: block; }
+
+  .note, .pass {
+    border-radius: 10px; padding: 10px 14px; margin: 10px 0 14px; font-size: 15px;
+  }
+  .note { background: var(--warn-bg); color: var(--warn-ink); }
+  .pass { background: var(--ok-bg); color: var(--ok-ink); }
+  .note strong, .pass strong { margin-right: 4px; }
+
+  .out {
+    background: var(--code-bg); border-left: 3px solid var(--accent); border-radius: 6px;
+    padding: 8px 12px; font: 13.5px/1.55 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap;
+    margin: 6px 0 12px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 6px 0 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; }
+
+  .check { list-style: none; padding: 0; }
+  .check li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .check input { margin-top: 5px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+
+  details { border-top: 1px solid var(--line); padding: 10px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { cursor: pointer; font-weight: 600; }
+  details > div { padding-top: 6px; color: var(--ink); }
+
+  footer { color: var(--muted); font-size: 14px; padding: 18px 0 48px; }
+  .theme-toggle {
+    font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 8px; padding: 4px 10px; cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    .settings { position: static; }
+    section.step { padding: 18px 14px 8px; scroll-margin-top: 12px; }
+    .step-head { gap: 10px; }
+    .field input, .field.token input { width: 100%; }
+    .field { flex: 1 1 140px; }
+    .cmd pre { font-size: 13px; }
+  }
+  .role { display: none; }
+  body[data-role="org"] .role.org, body[data-role="part"] .role.part { display: revert; }
+  body[data-role="org"] section.role.org, body[data-role="part"] section.role.part { display: block; }
+  body[data-role="org"] .toc.role.org, body[data-role="part"] .toc.role.part { display: flex; }
+  body[data-role="org"] .field.role.org { display: flex; }
+  .field.org input { width: 150px; }
+  #station { width: 70px; }
+</style>
+</head>
+<body data-os="windows" data-role="org">
+
+<div class="settings" role="region" aria-label="Your details">
+  <div class="wrap">
+    <div class="field token">
+      <label for="token">Event token</label>
+      <input id="token" placeholder="from the organizers" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field role org">
+      <label for="ip">Relay laptop IP</label>
+      <input id="ip" placeholder="192.168.1.20" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field role org">
+      <label for="station">Station no.</label>
+      <input id="station" inputmode="numeric" maxlength="1" placeholder="1">
+    </div>
+    <div class="field">
+      <label for="team">Team no.</label>
+      <input id="team" inputmode="numeric" maxlength="4" placeholder="07">
+    </div>
+    <div class="field">
+      <label>Laptop</label>
+      <div class="tabs" role="tablist" aria-label="Operating system" id="os-tabs">
+        <button role="tab" data-os="windows" aria-selected="true">Windows</button>
+        <button role="tab" data-os="mac" aria-selected="false">macOS</button>
+        <button role="tab" data-os="linux" aria-selected="false">Linux</button>
+      </div>
+    </div>
+    <p class="hint">Fill these in and every command updates. Values stay in this browser only.</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Head-Gesture Game Jam · Oct 15, 2026 · AB3 Gallery Classroom</div>
+    <h1 class="role org">Organizer command sheet</h1>
+    <p class="lead role org">Every command to run, in order, on each organizer laptop. <code>--2</code> = event Wi-Fi relay (primary), <code>--1</code> = internet relay (backup).</p>
+    <ul class="toc role org">
+      <li><a href="#o1">A · One-time setup</a></li>
+      <li><a href="#o2">B · Relay laptop</a></li>
+      <li><a href="#o3">C · Internet backup</a></li>
+      <li><a href="#o4">D · Stations</a></li>
+      <li><a href="#o5">E · Check-in desk</a></li>
+      <li><a href="#o6">F · Switch to backup</a></li>
+    </ul>
+  </header>
+
+  <!-- ===================================================== ORGANIZER -->
+  <section class="step role org" id="o1">
+    <div class="step-head"><div class="num">A</div>
+      <div><h2>One-time setup</h2><p class="when">Every organizer laptop · the night before</p></div></div>
+    <div class="os windows"><div class="cmd"><pre data-tpl="git clone https://github.com/Gowreesh-VT/Game-Dev-Event.git
+cd Game-Dev-Event
+py -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements-relay.txt -r requirements-listener.txt"></pre></div></div>
+    <div class="os mac linux"><div class="cmd"><pre data-tpl="git clone https://github.com/Gowreesh-VT/Game-Dev-Event.git
+cd Game-Dev-Event
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-relay.txt -r requirements-listener.txt"></pre></div></div>
+    <h3>Station laptops only: camera packages + face model</h3>
+    <div class="cmd"><pre data-tpl="pip install -r requirements-station.txt
+python station.py --token {TOKEN} --name station{STATION} --1"></pre></div>
+    <p>The first run downloads the face model (~4 MB) and asks for camera permission. Press <kbd>C</kbd> to check
+      calibration works, then <kbd>Q</kbd> to quit.</p>
+    <h3>Event morning: run these first in every new terminal</h3>
+    <div class="os windows"><div class="cmd"><pre data-tpl="cd Game-Dev-Event
+.venv\Scripts\activate"></pre></div></div>
+    <div class="os mac linux"><div class="cmd"><pre data-tpl="cd ~/Documents/GitHub/Game-Dev-Event
+source .venv/bin/activate"></pre></div></div>
+  </section>
+
+  <section class="step role org" id="o2">
+    <div class="step-head"><div class="num">B</div>
+      <div><h2>Relay laptop</h2><p class="when">Tech lead · 7:00 AM · plugged in, on the event Wi-Fi, lid open</p></div></div>
+    <h3>Terminal 1: start the relay (leave it running all day)</h3>
+    <div class="cmd"><pre data-tpl="python relay.py --port 8765 --token {TOKEN}"></pre></div>
+    <p>If asked to allow incoming connections, click <strong>Allow</strong> (Windows: tick <em>Private networks</em>).</p>
+    <h3>Terminal 2: find the IP, then keep the laptop awake</h3>
+    <div class="os mac"><div class="cmd"><pre data-tpl="ipconfig getifaddr en0
+caffeinate -d"></pre></div></div>
+    <div class="os windows"><div class="cmd"><pre data-tpl="ipconfig"></pre></div>
+      <p>Use the "IPv4 Address" under Wi-Fi. Then Settings &gt; System &gt; Power: set sleep to <strong>Never</strong>.</p></div>
+    <div class="os linux"><div class="cmd"><pre data-tpl="hostname -I"></pre></div>
+      <p>Then turn off automatic suspend in your power settings.</p></div>
+    <p>Type the IP into the <strong>Relay laptop IP</strong> box at the top of this page. Ask the coordinators to reserve it so it can't change.</p>
+    <h3>Set preset 2 to this IP (before 8:00, before teams download)</h3>
+    <p>Edit the <code>"2":</code> line near the top of <code>listener.py</code> so it reads:</p>
+    <div class="cmd"><pre data-tpl='    "2": ("event Wi-Fi relay", "ws://{IP}:8765"),'></pre></div>
+    <div class="cmd"><pre data-tpl='git commit -am "Set event Wi-Fi relay address"
+git push'></pre></div>
+    <div class="note"><strong>No time?</strong> Teams can use <code data-tpl="--server ws://{IP}:8765"></code> in place of <code>--2</code>.</div>
+    <h3>Test from a second laptop on the event Wi-Fi</h3>
+    <p>Open <a data-href="http://{IP}:8765/health" data-tpl="http://{IP}:8765/health"></a> in a browser: it shows <strong>ok</strong>. Then, in two terminals:</p>
+    <div class="cmd"><pre data-tpl="python listener.py --team 99 --token {TOKEN} --2 --test"></pre></div>
+    <div class="cmd"><pre data-tpl="python tools/fake_station.py --team 99 --token {TOKEN} --2"></pre></div>
+    <div class="pass"><strong>Pass:</strong> the first terminal prints <code>KEY ... DOWN / UP</code> lines. Stop both with <kbd>Ctrl</kbd>+<kbd>C</kbd>.</div>
+  </section>
+
+  <section class="step role org" id="o3">
+    <div class="step-head"><div class="num">C</div>
+      <div><h2>Internet backup (keep it awake)</h2><p class="when">Any organizer laptop · 7:45 AM</p></div></div>
+    <p>Open <a href="https://gesture-relay-xbs9.onrender.com/health">gesture-relay-xbs9.onrender.com/health</a> and wait for
+      <strong>ok</strong> (it can take up to 90 s to wake up). Then leave this running all day so it never sleeps:</p>
+    <div class="cmd"><pre data-tpl="python listener.py --team 00 --token {TOKEN} --1 --test"></pre></div>
+  </section>
+
+  <section class="step role org" id="o4">
+    <div class="step-head"><div class="num">D</div>
+      <div><h2>Station laptops</h2><p class="when">Station operators · 7:30 AM · hide the screens before 8:00</p></div></div>
+    <div class="cmd"><pre data-tpl="git pull
+python station.py --token {TOKEN} --name station{STATION} --2"></pre></div>
+    <ol>
+      <li>Press <kbd>C</kbd> and calibrate on yourself; check <strong>25+ fps</strong> in the top right.</li>
+      <li>Press <kbd>T</kbd>, type <code>99</code>, <kbd>Enter</kbd>: keys reach the test listener (section B).</li>
+      <li>Press <kbd>R</kbd> to release. Turn the screen away until 12:00.</li>
+    </ol>
+    <table>
+      <thead><tr><th>Key</th><th>During demos</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>T</kbd></td><td>Select the team: type its number, <kbd>Enter</kbd> (starts the 10:00 timer)</td></tr>
+        <tr><td><kbd>C</kbd></td><td>Calibrate the player (look straight, eyes open, mouth closed)</td></tr>
+        <tr><td><kbd>P</kbd></td><td>Pause / resume</td></tr>
+        <tr><td><kbd>R</kbd></td><td>Release the team at the end of the round</td></tr>
+        <tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Sensitivity</td></tr>
+        <tr><td><kbd>Q</kbd></td><td>Quit</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="step role org" id="o5">
+    <div class="step-head"><div class="num">E</div>
+      <div><h2>Check-in desk</h2><p class="when">Volunteers · 8:00 AM onward</p></div></div>
+    <p>Keep this open and refresh it to see who is online:
+      <a data-href="http://{IP}:8765/status" data-tpl="http://{IP}:8765/status"></a></p>
+    <h3>For each team at check-in</h3>
+    <ol>
+      <li>Give them their team number and the token, and the participant command sheet (<code>participant.html</code>).</li>
+      <li>They install and run the connection test (Participant step 1). <strong>Pass:</strong> <code>CONNECTED (team NN)</code>
+        and the team shows on the status page.</li>
+      <li>Mac teams: make sure the key permission is granted now (Participant step 1, last part).</li>
+    </ol>
+    <h3>12:00 – 12:30: key test for each team</h3>
+    <p>The team runs the listener live and clicks their game. Then, from the desk laptop:</p>
+    <div class="cmd"><pre data-tpl="python tools/fake_station.py --team {TEAM} --token {TOKEN} --2"></pre></div>
+    <div class="pass"><strong>Pass:</strong> the game reacts to arrows, Z and Space, and nothing stays held afterwards.</div>
+  </section>
+
+  <section class="step role org" id="o6">
+    <div class="step-head"><div class="num">F</div>
+      <div><h2>Switch to the internet backup</h2><p class="when">Only if the event Wi-Fi relay fails</p></div></div>
+    <p>Stations: press <kbd>Q</kbd>, then:</p>
+    <div class="cmd"><pre data-tpl="python station.py --token {TOKEN} --name station{STATION} --1"></pre></div>
+    <p>Announce to teams: <strong>"Press Ctrl+C and restart your listener with --1 instead of --2."</strong>
+      Expect about 0.3 s more delay per key.</p>
+  </section>
+
+  <!-- ===================================================== PARTICIPANT -->
+
+  <footer>
+    <button class="theme-toggle" id="theme" type="button">Toggle dark / light</button>
+    &nbsp; <a href="participant.html">Participant commands</a> · <a href="index.html">Participant guide</a> · Organizers only · Head-Gesture Game Jam · MIC Development Department, VIT Chennai
+  </footer>
+</div>
+
+<script>
+  const store = {
+    get(k) { try { return localStorage.getItem("org-" + k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem("org-" + k, v); } catch (e) {} },
+  };
+  const inputs = ["token", "ip", "station", "team"].map(id => document.getElementById(id));
+
+  function val(id, fallback) {
+    const el = document.getElementById(id);
+    return (el && el.value.trim()) || fallback;
+  }
+  function team() {
+    const t = val("team", "07");
+    return /^\d+$/.test(t) ? t.padStart(2, "0") : t;
+  }
+
+  function render() {
+    const map = { TOKEN: val("token", "YOUR_TOKEN"), IP: val("ip", "RELAY-IP"),
+                  STATION: val("station", "1"), TEAM: team() };
+    const fill = s => s.replace(/\{(TOKEN|IP|STATION|TEAM)\}/g, (_, k) => map[k]);
+    document.querySelectorAll("[data-tpl]").forEach(el => { el.textContent = fill(el.dataset.tpl); });
+    document.querySelectorAll("[data-href]").forEach(el => { el.href = fill(el.dataset.href); });
+  }
+
+  inputs.forEach(el => {
+    el.value = store.get(el.id) || "";
+    el.addEventListener("input", () => { store.set(el.id, el.value); render(); });
+  });
+
+  function tabs(groupId, attr, apply) {
+    const buttons = document.querySelectorAll(`#${groupId} button`);
+    const set = v => {
+      document.body.dataset[attr] = v;
+      buttons.forEach(b => b.setAttribute("aria-selected", b.dataset[attr] === v));
+      store.set(attr, v);
+      if (apply) apply(v);
+    };
+    buttons.forEach(b => b.addEventListener("click", () => set(b.dataset[attr])));
+    return set;
+  }
+  const setOS = tabs("os-tabs", "os");
+  const ua = navigator.userAgent;
+  setOS(store.get("os") || (/Mac/.test(ua) ? "mac" : /Linux|X11/.test(ua) && !/Android/.test(ua) ? "linux" : "windows"));
+
+  document.querySelectorAll(".cmd").forEach(box => {
+    const btn = document.createElement("button");
+    btn.className = "copy"; btn.type = "button"; btn.textContent = "Copy";
+    btn.addEventListener("click", async () => {
+      const text = box.querySelector("pre").textContent;
+      try { await navigator.clipboard.writeText(text); }
+      catch (e) {
+        const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand("copy"); ta.remove();
+      }
+      btn.textContent = "Copied"; btn.classList.add("done");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1500);
+    });
+    box.appendChild(btn);
+  });
+
+  const savedTheme = store.get("theme");
+  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  document.getElementById("theme").addEventListener("click", () => {
+    const dark = document.documentElement.dataset.theme
+      ? document.documentElement.dataset.theme === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = dark ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    store.set("theme", next);
+  });
+
+  render();
+</script>
+</body>
+</html>
