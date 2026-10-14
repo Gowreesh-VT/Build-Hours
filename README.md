@@ -17,6 +17,7 @@ device-to-device traffic. One relay handles 25 listeners and up to 5 stations.
 | `station.py` | Webcam app: head pose, mouth and blinks → keys, with overlay and hotkeys |
 | `tools/fake_station.py` | Sends scripted keys to a team (no webcam needed) |
 | `tools/key_viewer.html` | Browser page that shows which keys are held |
+| `tools/test_game.html` | Small test game (arrows, Z, Space) that follows the starter-prompt rules |
 | `render.yaml`, `Dockerfile` | Deployment |
 | `config.example.json` | Shared config (server, token, team, station thresholds) |
 

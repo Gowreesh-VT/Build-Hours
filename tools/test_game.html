@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Catcher</title>
+<!--
+  Test game for the game jam. Controls: arrow keys (held), Z (start / restart), Space (shield).
+  Follows the starter-prompt rules: held keys read every frame, fresh Z press for screen changes,
+  forgiving speeds, warnings before hazards, no mouse, no internet.
+  Open this file in a browser and click on the page.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+// ------------------------------------------------------------------ input --
+// All key handling lives here: held state + "fresh press" detection.
+const Input = (() => {
+  const CODES = {
+    ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+    KeyZ: "z", Space: "space",
+  };
+  const held = { up: false, down: false, left: false, right: false, z: false, space: false };
+  const fresh = new Set();          // keys pressed since the last frame
+
+  addEventListener("keydown", e => {
+    const k = CODES[e.code] || (e.key === "z" || e.key === "Z" ? "z" : null);
+    if (!k) return;
+    e.preventDefault();
+    if (!held[k]) fresh.add(k);     // OS key-repeat never counts as a new press
+    held[k] = true;
+  });
+  addEventListener("keyup", e => {
+    const k = CODES[e.code] || (e.key === "z" || e.key === "Z" ? "z" : null);
+    if (!k) return;
+    e.preventDefault();
+    held[k] = false;
+  });
+  addEventListener("blur", () => { for (const k in held) held[k] = false; fresh.clear(); });
+
+  return {
+    held,
+    pressed: k => fresh.has(k),     // true for one frame after a new press
+    endFrame: () => fresh.clear(),
+  };
+})();
+
+// ------------------------------------------------------------------- game --
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0;
+function resize() {
+  const dpr = devicePixelRatio || 1;
+  W = innerWidth; H = innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener("resize", resize);
+resize();
+
+const SPEED = 230;            // px/s: moderate, easy to steer with held keys
+const SHIELD_TIME = 1.5, SHIELD_COOLDOWN = 2.0;
+const WARN_TIME = 1.2;        // seconds of warning before a meteor enters
+const ROUND_TIME = 150;       // 2.5 minute round
+
+let state = "title";          // title | play | over
+let overAt = 0, now = 0;
+let ship, stars, meteors, score, lives, timeLeft, shieldUntil, shieldReadyAt, hurtUntil, spawnIn;
+
+function reset() {
+  ship = { x: W / 2, y: H / 2, r: 18 };
+  stars = []; meteors = [];
+  score = 0; lives = 3; timeLeft = ROUND_TIME;
+  shieldUntil = 0; shieldReadyAt = 0; hurtUntil = 0; spawnIn = 2;
+  for (let i = 0; i < 3; i++) addStar();
+}
+
+function addStar() {
+  stars.push({ x: 60 + Math.random() * (W - 120), y: 90 + Math.random() * (H - 150), r: 14,
+               t: Math.random() * 6 });
+}
+
+function addMeteor() {
+  // Start off-screen with a warning marker on the edge it will come from.
+  const side = Math.floor(Math.random() * 4);
+  const speed = 70 + Math.min(score, 30) * 2.5;         // slowly gets harder
+  const m = { r: 24 + Math.random() * 12, warn: WARN_TIME };
+  if (side === 0) { m.x = Math.random() * W; m.y = -40; }
+  if (side === 1) { m.x = W + 40; m.y = Math.random() * H; }
+  if (side === 2) { m.x = Math.random() * W; m.y = H + 40; }
+  if (side === 3) { m.x = -40; m.y = Math.random() * H; }
+  const tx = W * (0.25 + Math.random() * 0.5), ty = H * (0.25 + Math.random() * 0.5);
+  const d = Math.hypot(tx - m.x, ty - m.y);
+  m.vx = (tx - m.x) / d * speed; m.vy = (ty - m.y) / d * speed;
+  meteors.push(m);
+}
+
+function update(dt) {
+  if (state === "title") {
+    if (Input.pressed("z")) { reset(); state = "play"; }
+    return;
+  }
+  if (state === "over") {
+    if (now - overAt > 1 && Input.pressed("z")) { reset(); state = "play"; }
+    return;
+  }
+
+  // Movement: held arrows, diagonals normalised. Opposite keys cancel out.
+  let dx = (Input.held.right ? 1 : 0) - (Input.held.left ? 1 : 0);
+  let dy = (Input.held.down ? 1 : 0) - (Input.held.up ? 1 : 0);
+  if (dx && dy) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; }
+  ship.x = Math.max(ship.r, Math.min(W - ship.r, ship.x + dx * SPEED * dt));
+  ship.y = Math.max(ship.r + 50, Math.min(H - ship.r, ship.y + dy * SPEED * dt));
+
+  // Shield on Space (one activation per press, then a cooldown).
+  if (Input.pressed("space") && now >= shieldReadyAt) {
+    shieldUntil = now + SHIELD_TIME;
+    shieldReadyAt = now + SHIELD_TIME + SHIELD_COOLDOWN;
+  }
+
+  timeLeft -= dt;
+  if (timeLeft <= 0) { timeLeft = 0; gameOver(); return; }
+
+  for (const s of stars) {
+    s.t += dt;
+    if (Math.hypot(s.x - ship.x, s.y - ship.y) < s.r + ship.r + 6) {   // generous pickup
+      score++; Object.assign(s, { x: 60 + Math.random() * (W - 120), y: 90 + Math.random() * (H - 150) });
+    }
+  }
+
+  spawnIn -= dt;
+  if (spawnIn <= 0) { addMeteor(); spawnIn = Math.max(1.6, 3.2 - score * 0.05); }
+
+  for (const m of meteors) {
+    if (m.warn > 0) { m.warn -= dt; continue; }
+    m.x += m.vx * dt; m.y += m.vy * dt;
+    const hit = Math.hypot(m.x - ship.x, m.y - ship.y) < m.r + ship.r - 8;  // forgiving hitbox
+    if (hit && now >= shieldUntil && now >= hurtUntil) {
+      lives--; hurtUntil = now + 2;          // 2 s of safety after a hit
+      m.gone = true;
+      if (lives <= 0) { gameOver(); return; }
+    } else if (hit && now < shieldUntil) {
+      m.gone = true; score++;
+    }
+    if (m.x < -120 || m.x > W + 120 || m.y < -120 || m.y > H + 120) m.gone = true;
+  }
+  meteors = meteors.filter(m => !m.gone);
+}
+
+function gameOver() { state = "over"; overAt = now; }
+
+// ------------------------------------------------------------------- draw --
+function text(s, x, y, size, color = "#e8ecff", align = "center") {
+  ctx.fillStyle = color; ctx.textAlign = align;
+  ctx.font = `600 ${size}px system-ui, -apple-system, Segoe UI, sans-serif`;
+  ctx.fillText(s, x, y);
+}
+
+function drawShip() {
+  const blink = now < hurtUntil && Math.floor(now * 8) % 2 === 0;
+  if (blink) return;
+  ctx.save(); ctx.translate(ship.x, ship.y);
+  ctx.fillStyle = "#7cc4ff";
+  ctx.beginPath(); ctx.moveTo(0, -ship.r); ctx.lineTo(ship.r * 0.85, ship.r); ctx.lineTo(0, ship.r * 0.5);
+  ctx.lineTo(-ship.r * 0.85, ship.r); ctx.closePath(); ctx.fill();
+  if (now < shieldUntil) {
+    ctx.strokeStyle = "rgba(120,255,200,.9)"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, ship.r + 12, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawStar(s) {
+  const r = s.r * (1 + 0.12 * Math.sin(s.t * 4));
+  ctx.save(); ctx.translate(s.x, s.y); ctx.fillStyle = "#ffd75e";
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r;
+    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+function drawMeteor(m) {
+  if (m.warn > 0) {           // warning marker on the screen edge
+    const x = Math.max(20, Math.min(W - 20, m.x)), y = Math.max(70, Math.min(H - 20, m.y));
+    if (Math.floor(now * 6) % 2 === 0) text("!", x, y + 10, 34, "#ff6b6b");
+    return;
+  }
+  ctx.fillStyle = "#b07a5a";
+  ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#8c5d43";
+  ctx.beginPath(); ctx.arc(m.x - m.r * 0.3, m.y - m.r * 0.2, m.r * 0.3, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawKeys() {         // which keys are held right now (handy for testing)
+  const keys = [["↑", "up"], ["↓", "down"], ["←", "left"], ["→", "right"], ["Z", "z"], ["SPACE", "space"]];
+  let x = W - 16;
+  ctx.font = "600 13px system-ui, sans-serif";
+  for (let i = keys.length - 1; i >= 0; i--) {
+    const [label, k] = keys[i];
+    const w = Math.max(28, ctx.measureText(label).width + 14);
+    x -= w;
+    ctx.fillStyle = Input.held[k] ? "#3ccf7a" : "rgba(255,255,255,.12)";
+    ctx.beginPath(); ctx.roundRect(x, H - 40, w, 26, 6); ctx.fill();
+    text(label, x + w / 2, H - 22, 13, Input.held[k] ? "#06130b" : "#c9d1ee");
+    x -= 6;
+  }
+}
+
+function drawBackdrop() {
+  ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "rgba(255,255,255,.35)";
+  for (let i = 0; i < 70; i++) {
+    const x = (i * 137.5) % W, y = (i * 91.3 + now * (8 + (i % 5) * 4)) % H;
+    ctx.fillRect(x, y, 2, 2);
+  }
+}
+
+function draw() {
+  drawBackdrop();
+  if (state === "title") {
+    text("STAR CATCHER", W / 2, H / 2 - 70, 54);
+    text("Press Z to start", W / 2, H / 2, 28, "#ffd75e");
+    text("Arrows: fly (hold to keep moving)   ·   Space: shield   ·   Z: start / restart", W / 2, H / 2 + 50, 17, "#9aa6cc");
+    text("Collect stars, dodge meteors. A red ! warns where a meteor will appear.", W / 2, H / 2 + 80, 15, "#9aa6cc");
+  } else {
+    stars.forEach(drawStar);
+    meteors.forEach(drawMeteor);
+    drawShip();
+    // HUD
+    ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(0, 0, W, 50);
+    text(`Score ${score}`, 18, 33, 20, "#e8ecff", "left");
+    text("♥".repeat(Math.max(lives, 0)), W / 2, 34, 22, "#ff6b8a");
+    const m = Math.floor(timeLeft / 60), s = Math.floor(timeLeft % 60);
+    text(`${m}:${String(s).padStart(2, "0")}`, W - 18, 33, 20, "#e8ecff", "right");
+    const ready = now >= shieldReadyAt;
+    text(ready ? "Shield ready (Space)" : "Shield charging…", 18, H - 22, 14, ready ? "#78ffc8" : "#7b86a8", "left");
+    if (state === "over") {
+      ctx.fillStyle = "rgba(5,8,18,.75)"; ctx.fillRect(0, 0, W, H);
+      text(timeLeft <= 0 ? "TIME UP" : "GAME OVER", W / 2, H / 2 - 50, 50);
+      text(`Score: ${score}`, W / 2, H / 2, 28, "#ffd75e");
+      if (now - overAt > 1) text("Press Z to play again", W / 2, H / 2 + 50, 24);
+    }
+  }
+  drawKeys();
+}
+
+// ------------------------------------------------------------------- loop --
+let last = performance.now();
+function frame(t) {
+  const dt = Math.min(0.05, (t - last) / 1000);
+  last = t; now += dt;
+  update(dt);
+  draw();
+  Input.endFrame();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
