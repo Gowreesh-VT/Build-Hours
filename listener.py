@@ -33,7 +33,7 @@ MAX_BACKOFF = 5.0
 # Organizers: put the event Wi-Fi relay laptop's address in preset 2 before check-in.
 PRESETS = {
     "1": ("internet relay (Render)", "wss://gesture-relay-xbs9.onrender.com"),
-    "2": ("event Wi-Fi relay", "ws://172.20.164.107:8765"),
+    "2": ("event Wi-Fi relay", "ws://172.16.44.57:8765"),
 }
 PRESET_ALIASES = {"render": "1", "internet": "1", "local": "2", "wifi": "2", "lan": "2"}
 
